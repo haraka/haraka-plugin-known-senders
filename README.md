@@ -1,5 +1,7 @@
 # haraka-plugin-domain-counters
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/haraka/haraka-plugin-domain-counters.svg)](https://greenkeeper.io/)
+
 Increase the reputation of domains you send email to.
 
 
