@@ -50,7 +50,7 @@ describe('check_sender_early', function () {
     connection.transaction.mail_from = new Address('<johndoe@spf-mfrom.com>');
     connection.transaction.results.add({ name: 'spf'}, {
       scope: 'mfrom',
-      result: 'pass',
+      result: 'Pass',
       domain: 'spf-mfrom.com',
     });
 
@@ -65,7 +65,7 @@ describe('check_sender_early', function () {
     connection.transaction.mail_from = new Address('<johndoe@helo-pass.com>');
     connection.results.add({ name: 'spf'}, {
       scope: 'helo',
-      result: 'pass',
+      result: 'Pass',
       domain: 'helo-pass.com',
     });
 
@@ -74,6 +74,14 @@ describe('check_sender_early', function () {
       done();
     },
     connection);
+  });
+});
+
+describe('check_recipient', function () {
+  it('reduces domain to OD', function (done) {
+
+    assert.equal(true, false);
+    done();
   });
 });
 

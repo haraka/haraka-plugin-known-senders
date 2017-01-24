@@ -4,10 +4,21 @@ var tlds = require('haraka-tld');
 
 exports.register = function () {
   var plugin = this;
+  plugin.inherits('redis');
+
+  plugin.load_sender_ini();
+  plugin.load_redis_ini();
 
   plugin.register_hook('mail',     'check_sender_early');
   plugin.register_hook('rcpt_ok',  'check_recipient');
   plugin.register_hook('queue_ok', 'update_sender');
+}
+
+exports.load_sender_ini = function () {
+  var plugin = this;
+  plugin.config.get('sender.ini', function () {
+    plugin.load_sender_ini();
+  });
 }
 
 exports.check_sender_early = function (next, connection, params) {
@@ -78,8 +89,11 @@ exports.update_sender = function (next, connection, params) {
     plugin.loginfo('recip domains: ' + rcpt_domains.join(','));
   }
 
+
+
   next(undefined, sender_od, rcpt_domains);
 }
+
 
 
 exports.get_recipient_domains = function (txn) {
@@ -128,19 +142,22 @@ exports.has_fcrdns_match = function (sender_od, connection) {
 }
 
 exports.has_spf_match = function (sender_od, connection) {
+  var plugin = this;
 
   var spf = connection.results.get('spf');
-  if (spf && spf.domain && spf.result === 'pass') {
+  if (spf && spf.domain && spf.result === 'Pass') {
     // scope=helo (HELO/EHLO)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
+      plugin.validated_sender_od = sender_od;
       return true;
     }
   }
 
   spf = connection.transaction.results.get('spf');
-  if (spf && spf.domain && spf.result === 'pass') {
+  if (spf && spf.domain && spf.result === 'Pass') {
     // scope=mfrom (HELO/EHLO)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
+      plugin.validated_sender_od = sender_od;
       return true;
     }
   }
