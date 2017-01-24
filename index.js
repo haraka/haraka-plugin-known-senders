@@ -1,22 +1,28 @@
+'use strict';
+
 var tlds = require('haraka-tld');
 
 exports.register = function () {
   var plugin = this;
 
-  plugin.register_hook('mail',     'check_sender');
+  plugin.register_hook('mail',     'check_sender_early');
   plugin.register_hook('rcpt_ok',  'check_recipient');
   plugin.register_hook('queue_ok', 'update_sender');
 }
 
-exports.check_sender = function (next, connection, params) {
+exports.check_sender_early = function (next, connection, params) {
   var plugin = this;
 
   if (connection.relaying) return next();
 
   var sender_od = plugin.get_sender_domain(connection.transaction);
 
-  if (plugin.has_fcrdns_match(sender_od, connection)) return next();
-  if (plugin.has_spf_match(sender_od, connection)) return next();
+  if (plugin.has_fcrdns_match(sender_od, connection)) {
+    return next(null, sender_od);
+  }
+  if (plugin.has_spf_match(sender_od, connection)) {
+    return next(null, sender_od);
+  }
 
   // no other auth mechanisms to test
   return next();
@@ -75,6 +81,7 @@ exports.update_sender = function (next, connection, params) {
   next(undefined, sender_od, rcpt_domains);
 }
 
+
 exports.get_recipient_domains = function (txn) {
   var plugin = this;
 
@@ -121,11 +128,23 @@ exports.has_fcrdns_match = function (sender_od, connection) {
 }
 
 exports.has_spf_match = function (sender_od, connection) {
-  var plugin = this;
 
   var spf = connection.results.get('spf');
-  if (!spf) return false;
+  if (spf && spf.domain && spf.result === 'pass') {
+    // scope=helo (HELO/EHLO)
+    if (tlds.get_organizational_domain(spf.domain) === sender_od) {
+      return true;
+    }
+  }
 
-  plugin.loginfo(spf);
+  spf = connection.transaction.results.get('spf');
+  if (spf && spf.domain && spf.result === 'pass') {
+    // scope=mfrom (HELO/EHLO)
+    if (tlds.get_organizational_domain(spf.domain) === sender_od) {
+      return true;
+    }
+  }
+
+  // this.loginfo(spf);
   return false;
 }
