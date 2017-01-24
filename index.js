@@ -3,28 +3,76 @@ var tlds = require('haraka-tld');
 exports.register = function () {
   var plugin = this;
 
-  plugin.register_hook('queue_ok', 'after_queue');
+  plugin.register_hook('mail',     'check_sender');
+  plugin.register_hook('rcpt_ok',  'check_recipient');
+  plugin.register_hook('queue_ok', 'update_sender');
 }
 
-exports.after_queue = function (next, connection, params) {
+exports.check_sender = function (next, connection, params) {
+  var plugin = this;
+
+  if (connection.relaying) return next();
+
+  var sender_od = plugin.get_sender_domain(connection.transaction);
+
+  if (plugin.has_fcrdns_match(sender_od, connection)) return next();
+  if (plugin.has_spf_match(sender_od, connection)) return next();
+
+  // no other auth mechanisms to test
+  return next();
+}
+
+exports.check_recipient = function (next, connection, rcpt) {
+  var plugin = this;
+  // a plugin has vouched that the rcpt is for a domain we accept mail for
+
+  function errNext (err) {
+    plugin.logerror(err);
+    next();
+  }
+
+  // if no validated sender domain, there's nothing to do here
+  if (!plugin.validated_sender_od) return errNext('no valid sender od');
+
+  if (!rcpt.host) return errNext('rcpt.host unset?');
+
+  var rcpt_od = tlds.get_organizational_domain(rcpt.host);
+  if (!rcpt_od) return errNext('no rcpt od');
+
+  // DO THE CHECK
+
+  return next();
+}
+
+exports.update_sender = function (next, connection, params) {
   var plugin = this;
   // queue_ok arguments: next, connection, msg
   // ok 1390590369 qp 634 (F82E2DD5-9238-41DC-BC95-9C3A02716AD2.1)
 
+  function errNext (err) {
+    plugin.logerror(err);
+    next();
+  }
+
   plugin.loginfo(plugin, params);
-  if (!connection) return next();
-  if (!connection.transaction) return next();
+  if (!connection) return errNext('no connection');
+  if (!connection.transaction) return errNext('no transaction');
+  if (!connection.relaying) return errNext('not relaying');
   var txn = connection.transaction;
 
   var sender_od = plugin.get_sender_domain(txn);
-  if (!sender_od) return next();
-  var rcpt_domains = plugin.get_recipient_domains(txn);
-  if (rcpt_domains.length === 0) return next();
-
+  if (!sender_od) return errNext('no sender domain');
   plugin.loginfo('sender domain: ' + sender_od);
-  plugin.loginfo('recip domains: ' + rcpt_domains.join(','));
 
-  next();
+  var rcpt_domains = plugin.get_recipient_domains(txn);
+  if (rcpt_domains.length === 0) {
+    plugin.logerror('no recipient domains');
+  }
+  else {
+    plugin.loginfo('recip domains: ' + rcpt_domains.join(','));
+  }
+
+  next(undefined, sender_od, rcpt_domains);
 }
 
 exports.get_recipient_domains = function (txn) {
@@ -40,6 +88,7 @@ exports.get_recipient_domains = function (txn) {
       plugin.loginfo('rcpt: ' + txn.rcpt_to[i].host + ' -> ' + rcpt_od);
     }
     if (rcpt_domains.indexOf(rcpt_od) === -1) {
+      // not a duplicate, add to the list
       rcpt_domains.push(rcpt_od);
     }
   }
@@ -56,4 +105,27 @@ exports.get_sender_domain = function (txn) {
     plugin.loginfo('sender: ' + txn.mail_from.host + ' -> ' + sender_od);
   }
   return sender_od;
+}
+
+exports.has_fcrdns_match = function (sender_od, connection) {
+  var plugin = this;
+  var fcrdns = connection.results.get('fcrdns');
+  if (!fcrdns) return false;
+  if (!fcrdns.fcrdns) return false;
+
+  var fcrdns_od = tlds.get_organizational_domain(fcrdns.fcrdns);
+  if (fcrdns_od !== sender_od) return false;
+
+  plugin.validated_sender_od = sender_od;
+  return true;
+}
+
+exports.has_spf_match = function (sender_od, connection) {
+  var plugin = this;
+
+  var spf = connection.results.get('spf');
+  if (!spf) return false;
+
+  plugin.loginfo(spf);
+  return false;
 }

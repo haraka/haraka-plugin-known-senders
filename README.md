@@ -5,8 +5,9 @@ Increase the reputation of domains you send email to.
 
 # How it works
 
-When you[r users] send emails, this plugin will increment counters for each recipient domain.
-When emails later arrive from domains your users have sent email to, reputation engines like
+This plugin looks at outgoing emails that have been successfully queued. Outgoing messages are determined by inspecting the `relaying` property of the connection. If `relaying=true`, then the connection has (via AUTH credentials or IP ACLs) been extended a form of trust.
+
+In those outbound emails, the sender domain and recipient domains are parsed out and a redis entry is inserted/updated. Later when emails arrive from domains your users have sent email to, reputation engines like
  [karma](https://github.com/haraka/haraka-plugin-karma) can observe this and boost their deliverability.
 
 
