@@ -7,59 +7,34 @@ exports.register = function () {
   plugin.inherits('redis');
 
   plugin.load_sender_ini();
-  plugin.load_redis_ini();
 
-  plugin.register_hook('mail',     'check_sender_early');
-  plugin.register_hook('rcpt_ok',  'check_recipient');
-  plugin.register_hook('queue_ok', 'update_sender');
+  plugin.register_hook('init_master',  'init_redis_plugin');
+  plugin.register_hook('init_child',   'init_redis_plugin');
+
+  plugin.register_hook('mail',      'is_authenticated');
+  plugin.register_hook('rcpt_ok',   'check_recipient');
+  plugin.register_hook('queue_ok',  'update_sender');
+  plugin.register_hook('data_post', 'is_dkim_authenticated');
 }
 
 exports.load_sender_ini = function () {
   var plugin = this;
-  plugin.config.get('sender.ini', function () {
+
+  plugin.cfg = plugin.config.get('known-senders.ini', function () {
     plugin.load_sender_ini();
   });
+
+  plugin.merge_redis_ini();
 }
 
-exports.check_sender_early = function (next, connection, params) {
-  var plugin = this;
-
-  if (connection.relaying) return next();
-
-  var sender_od = plugin.get_sender_domain(connection.transaction);
-
-  if (plugin.has_fcrdns_match(sender_od, connection)) {
-    return next(null, sender_od);
-  }
-  if (plugin.has_spf_match(sender_od, connection)) {
-    return next(null, sender_od);
-  }
-
-  // no other auth mechanisms to test
-  return next();
-}
-
-exports.check_recipient = function (next, connection, rcpt) {
-  var plugin = this;
-  // a plugin has vouched that the rcpt is for a domain we accept mail for
-
-  function errNext (err) {
-    plugin.logerror(err);
-    next();
-  }
-
-  // if no validated sender domain, there's nothing to do here
-  if (!plugin.validated_sender_od) return errNext('no valid sender od');
-
-  if (!rcpt.host) return errNext('rcpt.host unset?');
-
-  var rcpt_od = tlds.get_organizational_domain(rcpt.host);
-  if (!rcpt_od) return errNext('no rcpt od');
-
-  // DO THE CHECK
-
-  return next();
-}
+/*
+ *                 Outbound Processing
+ *
+ * Identify and save to Redis domains the local users send email to
+ *
+ * Context: these functions run after a message has been queued.
+ *
+*/
 
 exports.update_sender = function (next, connection, params) {
   var plugin = this;
@@ -67,34 +42,55 @@ exports.update_sender = function (next, connection, params) {
   // ok 1390590369 qp 634 (F82E2DD5-9238-41DC-BC95-9C3A02716AD2.1)
 
   function errNext (err) {
-    plugin.logerror(err);
+    connection.logerror(plugin, 'update_sender: ' + err);
     next();
   }
 
-  plugin.loginfo(plugin, params);
+  // connection.loginfo(plugin, params);
   if (!connection) return errNext('no connection');
   if (!connection.transaction) return errNext('no transaction');
-  if (!connection.relaying) return errNext('not relaying');
+  if (!connection.relaying) return next();
   var txn = connection.transaction;
 
   var sender_od = plugin.get_sender_domain(txn);
   if (!sender_od) return errNext('no sender domain');
-  plugin.loginfo('sender domain: ' + sender_od);
 
   var rcpt_domains = plugin.get_recipient_domains(txn);
   if (rcpt_domains.length === 0) {
-    plugin.logerror('no recipient domains');
-  }
-  else {
-    plugin.loginfo('recip domains: ' + rcpt_domains.join(','));
+    connection.logerror(plugin, 'update_sender: no rcpt ODs for ' + sender_od);
+    return next();
   }
 
+  // within this function, the sender is a local domain
+  // and the recipient is an external domain
+  var multi = plugin.db.multi();
+  for (let i = 0; i < rcpt_domains.length; i++) {
+    multi.hincrby(sender_od, rcpt_domains[i], 1);
+  }
 
-
-  next(undefined, sender_od, rcpt_domains);
+  multi.exec(function (err, replies) {
+    if (err) {
+      connection.logerror(plugin, err);
+      return next();
+    }
+    for (let i = 0; i < rcpt_domains.length; i++) {
+      connection.loginfo(plugin, 'saved ' + sender_od + ' : ' + rcpt_domains[i] + ' : ' + replies[i]);
+    }
+    next(null, null, sender_od, rcpt_domains);
+  });
 }
 
+exports.get_sender_domain = function (txn) {
+  var plugin = this;
 
+  if (!txn.mail_from) return;
+  if (!txn.mail_from.host) return;
+  var sender_od = tlds.get_organizational_domain(txn.mail_from.host);
+  if (txn.mail_from.host !== sender_od) {
+    plugin.logdebug('sender: ' + txn.mail_from.host + ' -> ' + sender_od);
+  }
+  return sender_od;
+}
 
 exports.get_recipient_domains = function (txn) {
   var plugin = this;
@@ -106,7 +102,7 @@ exports.get_recipient_domains = function (txn) {
     if (!txn.rcpt_to[i].host) continue;
     var rcpt_od = tlds.get_organizational_domain(txn.rcpt_to[i].host);
     if (txn.rcpt_to[i].host !== rcpt_od) {
-      plugin.loginfo('rcpt: ' + txn.rcpt_to[i].host + ' -> ' + rcpt_od);
+      plugin.logdebug('rcpt: ' + txn.rcpt_to[i].host + ' -> ' + rcpt_od);
     }
     if (rcpt_domains.indexOf(rcpt_od) === -1) {
       // not a duplicate, add to the list
@@ -116,16 +112,147 @@ exports.get_recipient_domains = function (txn) {
   return rcpt_domains;
 }
 
-exports.get_sender_domain = function (txn) {
+/*
+ *                Inbound Processing
+ *
+ * Look for sender domains we can validate against something. Anything..
+ *   FCrDNS, SPF, DKIM, verified TLS host name, etc..
+ *
+ * When verified / validated sender domains are found, check to see if
+ * their recipients have ever sent mail to their domain.
+*/
+
+// early checks, on the mail hook
+exports.is_authenticated = function (next, connection, params) {
   var plugin = this;
 
-  if (!txn.mail_from) return;
-  if (!txn.mail_from.host) return;
-  var sender_od = tlds.get_organizational_domain(txn.mail_from.host);
-  if (txn.mail_from.host !== sender_od) {
-    plugin.loginfo('sender: ' + txn.mail_from.host + ' -> ' + sender_od);
+  // only validate inbound messages
+  if (connection.relaying) return next();
+
+  var sender_od = plugin.get_sender_domain(connection.transaction);
+
+  if (plugin.has_fcrdns_match(sender_od, connection)) {
+    connection.loginfo(plugin, '+fcrdns: ' + sender_od);
+    return next(null, null, sender_od);
   }
-  return sender_od;
+  if (plugin.has_spf_match(sender_od, connection)) {
+    connection.loginfo(plugin, '+spf: ' + sender_od);
+    return next(null, null, sender_od);
+  }
+
+  // TODO: TLS verified domain?
+
+  return next();
+}
+
+function get_sender_od (connection) {
+  if (!connection) return;
+  if (!connection.transaction) return;
+  var txn_res = connection.transaction.results.get('known-senders');
+  if (!txn_res) return;
+  return txn_res.sender;
+}
+
+function get_rcpt_ods (connection) {
+  if (!connection) return;
+  if (!connection.transaction) return;
+
+  var txn_r = connection.transaction.results.get('known-senders');
+  if (!txn_r) return;
+
+  return txn_r.rcpt_ods;
+}
+
+function already_matched (connection) {
+  var res = connection.transaction.results.get({ name: 'known-senders'});
+  if (!res) return false;
+  return (res.pass && res.pass.length) ? true : false;
+}
+
+exports.check_recipient = function (next, connection, rcpt) {
+  var plugin = this;
+  // rcpt is a valid local email address. Some rcpt_to.* plugin has
+  // accepted it.
+
+  // inbound only
+  if (connection.relaying) return next();
+
+  function errNext (err) {
+    connection.logerror(plugin, 'check_recipient: ' + err);
+    next();
+  }
+
+  if (!rcpt.host) return errNext('rcpt.host unset?');
+
+  // reduce the host portion of the email address to an OD
+  var rcpt_od = tlds.get_organizational_domain(rcpt.host);
+  if (!rcpt_od) return errNext('no rcpt od for ' + rcpt.host);
+
+  connection.transaction.results.push(plugin, { rcpt_ods: rcpt_od });
+
+  // if no validated sender domain, there's nothing to do...yet
+  var sender_od = get_sender_od(connection);
+  if (!sender_od) return next();
+
+  // The sender OD is validated, check Redis for a match
+  plugin.db.hget(rcpt_od, sender_od, function (err, reply) {
+    if (err) {
+      plugin.logerror(err);
+      return next();
+    }
+    connection.loginfo(plugin, rcpt_od + ' : ' + sender_od + ' : ' + reply);
+    if (reply) {
+      connection.transaction.results.add(plugin, { pass: rcpt_od, count: reply });
+    }
+    return next(null, null, rcpt_od);
+  });
+}
+
+exports.is_dkim_authenticated = function (next, connection) {
+  var plugin = this;
+  if (connection.relaying) return next();
+  if (already_matched(connection)) return next();
+
+  var sender_od = get_sender_od(connection);
+  if (!sender_od) return next();
+
+  var rcpt_ods = get_rcpt_ods(connection);
+  if (!rcpt_ods || ! rcpt_ods.length) return next();
+
+  var dkim = connection.results.get('dkim_verify');
+  if (!dkim) return next();
+  connection.loginfo(plugin, dkim);
+  if (!dkim.pass || !dkim.pass.length) return next();
+
+  var multi = plugin.db.multi();
+
+  for (let i = 0; i < dkim.pass.length; i++) {
+    var dkim_od = tlds.get_organizational_domain(dkim.pass[i]);
+    if (dkim_od === sender_od) {
+      connection.transaction.results.add(plugin, { sender: sender_od, auth: 'dkim' });
+      for (let j = 0; j < rcpt_ods.length; j++) {
+        multi.hget(rcpt_ods[j], sender_od);
+      }
+    }
+  }
+
+  multi.exec(function (err, replies) {
+    if (err) {
+      connection.logerror(plugin, err);
+      return next();
+    }
+
+    connection.loginfo(plugin, 'is_dkim_auth: ');
+    connection.loginfo(plugin, replies);
+
+    for (let j = 0; j < rcpt_ods.length; j++) {
+      connection.loginfo(plugin, rcpt_ods[j] + ' : ' + sender_od + ' : ' + replies[j]);
+      if (replies[j]) {
+        connection.transaction.results.add(plugin, { pass: rcpt_ods[j], count: replies[j] });
+      }
+    }
+    return next(null, null, rcpt_ods);
+  });
 }
 
 exports.has_fcrdns_match = function (sender_od, connection) {
@@ -134,10 +261,12 @@ exports.has_fcrdns_match = function (sender_od, connection) {
   if (!fcrdns) return false;
   if (!fcrdns.fcrdns) return false;
 
+  connection.loginfo(plugin, fcrdns.fcrdns);
+
   var fcrdns_od = tlds.get_organizational_domain(fcrdns.fcrdns);
   if (fcrdns_od !== sender_od) return false;
 
-  plugin.validated_sender_od = sender_od;
+  connection.transaction.results.add(plugin, {sender: sender_od, auth: 'fcrdns'});
   return true;
 }
 
@@ -148,7 +277,7 @@ exports.has_spf_match = function (sender_od, connection) {
   if (spf && spf.domain && spf.result === 'Pass') {
     // scope=helo (HELO/EHLO)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
-      plugin.validated_sender_od = sender_od;
+      connection.transaction.results.add(plugin, {sender: sender_od});
       return true;
     }
   }
@@ -157,7 +286,7 @@ exports.has_spf_match = function (sender_od, connection) {
   if (spf && spf.domain && spf.result === 'Pass') {
     // scope=mfrom (HELO/EHLO)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
-      plugin.validated_sender_od = sender_od;
+      connection.transaction.results.add(plugin, {sender: sender_od, auth: 'spf' });
       return true;
     }
   }

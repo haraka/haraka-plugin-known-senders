@@ -1,7 +1,7 @@
 {
-  "name": "haraka-plugin-domain-counters",
+  "name": "haraka-plugin-known-senders",
   "version": "1.0.0",
-  "description": "Increase the reputation of domains you send email to.",
+  "description": "Increase the reputation of recognized sender domains.",
   "main": "index.js",
   "scripts": {
     "lint": "./node_modules/.bin/eslint *.js test/*.js",
@@ -9,21 +9,22 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haraka/haraka-plugin-domain-counters.git"
+    "url": "git+https://github.com/haraka/haraka-plugin-known-senders.git"
   },
   "keywords": [
     "Haraka",
     "domain",
     "reputation",
+    "well-known",
     "sender",
     "whitelist"
   ],
   "author": "Matt Simerson <matt@tnpi.net>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/haraka/haraka-plugin-domain-counters/issues"
+    "url": "https://github.com/haraka/haraka-plugin-known-senders/issues"
   },
-  "homepage": "https://github.com/haraka/haraka-plugin-domain-counters#readme",
+  "homepage": "https://github.com/haraka/haraka-plugin-known-senders#readme",
   "devDependencies": {
     "address-rfc2821": "*",
     "eslint": "^3",
