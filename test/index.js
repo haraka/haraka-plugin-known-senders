@@ -82,8 +82,9 @@ describe('check_recipient', function () {
 
   beforeEach(function (done) {
     connection = fixtures.connection.createConnection();
-    connection.relaying = true;
+    // connection.relaying = true;
     connection.transaction = fixtures.transaction.createTransaction();
+    connection.transaction.results = new fixtures.result_store(connection);
     done();
   });
 
@@ -91,8 +92,9 @@ describe('check_recipient', function () {
     var plugin = fixtures.plugin('index');
     plugin.validated_sender_od = 'example.com';
 
-    plugin.check_recipient(function (null1, null2, reply) {
-      assert.equal(reply, 'example.com');
+    plugin.check_recipient(function () {
+      var res = connection.transaction.results.get(plugin.name);
+      assert.equal(res.rcpt_ods[0], 'example.com');
       done();
     },
     connection,
@@ -103,6 +105,12 @@ describe('check_recipient', function () {
 describe('update_sender', function () {
 
   var plugin = fixtures.plugin('index');
+  plugin.db = {
+    multi :function () { return plugin.db; },
+    hget : function () {},
+    hincrby : function () {},
+    exec: function (cb) { if (cb) cb(null, []); },
+  }
   var connection;
 
   beforeEach(function (done) {
@@ -149,3 +157,34 @@ describe('update_sender', function () {
   });
 });
 
+describe('is_dkim_authenticated', function () {
+
+  var plugin = fixtures.plugin('index');
+  plugin.db = {
+    multi : function () { return plugin.db; },
+    hget : function () {},
+    hincrby : function () {},
+    exec: function (cb) { cb(null, []); },
+  }
+  var connection;
+
+  beforeEach(function (done) {
+    connection = fixtures.connection.createConnection();
+    connection.transaction = fixtures.transaction.createTransaction();
+    connection.transaction.results = new fixtures.result_store(connection);
+    done();
+  });
+
+  it('finds dkim results', function (done) {
+    connection.transaction.results.add(plugin, { sender: 'sender.com' });
+    connection.transaction.results.push(plugin, { rcpt_ods: 'rcpt.com' });
+    connection.transaction.results.add({name: 'dkim_verify'}, { pass: 'sender.com'});
+
+    plugin.is_dkim_authenticated(function () {
+      var res = connection.transaction.results.get(plugin.name);
+      assert.equal('dkim', res.auth);
+      done();
+    },
+    connection);
+  });
+});

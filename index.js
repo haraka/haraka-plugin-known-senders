@@ -43,7 +43,7 @@ exports.update_sender = function (next, connection, params) {
 
   function errNext (err) {
     connection.logerror(plugin, 'update_sender: ' + err);
-    next();
+    next(null, null, sender_od, rcpt_domains);
   }
 
   // connection.loginfo(plugin, params);
@@ -57,8 +57,7 @@ exports.update_sender = function (next, connection, params) {
 
   var rcpt_domains = plugin.get_recipient_domains(txn);
   if (rcpt_domains.length === 0) {
-    connection.logerror(plugin, 'update_sender: no rcpt ODs for ' + sender_od);
-    return next();
+    return errNext('no rcpt ODs for ' + sender_od);
   }
 
   // within this function, the sender is a local domain
@@ -145,19 +144,21 @@ exports.is_authenticated = function (next, connection, params) {
   return next();
 }
 
-function get_sender_od (connection) {
+exports.get_sender_od = function (connection) {
+  var plugin = this;
   if (!connection) return;
   if (!connection.transaction) return;
-  var txn_res = connection.transaction.results.get('known-senders');
+  var txn_res = connection.transaction.results.get(plugin.name);
   if (!txn_res) return;
   return txn_res.sender;
 }
 
-function get_rcpt_ods (connection) {
+exports.get_rcpt_ods = function (connection) {
+  var plugin = this;
   if (!connection) return;
   if (!connection.transaction) return;
 
-  var txn_r = connection.transaction.results.get('known-senders');
+  var txn_r = connection.transaction.results.get(plugin.name);
   if (!txn_r) return;
 
   return txn_r.rcpt_ods;
@@ -191,7 +192,7 @@ exports.check_recipient = function (next, connection, rcpt) {
   connection.transaction.results.push(plugin, { rcpt_ods: rcpt_od });
 
   // if no validated sender domain, there's nothing to do...yet
-  var sender_od = get_sender_od(connection);
+  var sender_od = plugin.get_sender_od(connection);
   if (!sender_od) return next();
 
   // The sender OD is validated, check Redis for a match
@@ -211,18 +212,23 @@ exports.check_recipient = function (next, connection, rcpt) {
 exports.is_dkim_authenticated = function (next, connection) {
   var plugin = this;
   if (connection.relaying) return next();
-  if (already_matched(connection)) return next();
 
-  var sender_od = get_sender_od(connection);
-  if (!sender_od) return next();
+  function errNext (err) {
+    connection.logerror(plugin, 'is_dkim_authenticated: ' + err);
+    return next(null, null, rcpt_ods);
+  }
 
-  var rcpt_ods = get_rcpt_ods(connection);
-  if (!rcpt_ods || ! rcpt_ods.length) return next();
+  if (already_matched(connection)) return errNext('already matched');
 
-  var dkim = connection.results.get('dkim_verify');
-  if (!dkim) return next();
-  connection.loginfo(plugin, dkim);
-  if (!dkim.pass || !dkim.pass.length) return next();
+  var sender_od = plugin.get_sender_od(connection);
+  if (!sender_od) return errNext('no sender_od');
+
+  var rcpt_ods = plugin.get_rcpt_ods(connection);
+  if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
+
+  var dkim = connection.transaction.results.get('dkim_verify');
+  if (!dkim) return errNext('no dkim_verify results');
+  if (!dkim.pass || !dkim.pass.length) return errNext('no dkim pass');
 
   var multi = plugin.db.multi();
 
@@ -241,9 +247,6 @@ exports.is_dkim_authenticated = function (next, connection) {
       connection.logerror(plugin, err);
       return next();
     }
-
-    connection.loginfo(plugin, 'is_dkim_auth: ');
-    connection.loginfo(plugin, replies);
 
     for (let j = 0; j < rcpt_ods.length; j++) {
       connection.loginfo(plugin, rcpt_ods[j] + ' : ' + sender_od + ' : ' + replies[j]);
