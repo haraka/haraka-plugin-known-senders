@@ -1,24 +1,21 @@
-# haraka-plugin-domain-counters
+# haraka-plugin-known-senders
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/haraka/haraka-plugin-domain-counters.svg)](https://greenkeeper.io/)
+[![Greenkeeper badge](https://badges.greenkeeper.io/haraka/haraka-plugin-known-senders.svg)](https://greenkeeper.io/)
 
 Increase the reputation of domains you send email to.
 
 
-# How it works
+## How it works
 
-When you[r users] send emails, this plugin will increment counters for each recipient domain.
-When emails later arrive from domains your users have sent email to, reputation engines like
- [karma](https://github.com/haraka/haraka-plugin-karma) can observe this and boost their deliverability.
+This plugin inspects outgoing emails and adds the destination domains to a known senders database. When emails arrive from those known senders, this plugin stores a result object noting that.
 
+### TL;DR
 
-# PLAN
+Outgoing messages are determined by inspecting the `relaying` property of the connection. If `relaying=true`, then the connection has been extended a form of trust, usually via AUTH credentials or IP ACLs. In those outbound emails, the sender domain and recipient domains are parsed and a redis entry is inserted/updated.
 
-- for domains we send to, increment when the message is queued
-- for domains we receive from, increment only when:
-    - message has been queued
+When emails later arrive from a domain your users have sent email to, the redis DB is checked and if a match is found, a result object is stored in the transaction results. That result can be scored by reputation engines like
+ [karma](https://github.com/haraka/haraka-plugin-karma) and used to affect the messages deliverability.
 
-There's no attempt to validate outbound (sent) email domains.
 
 # MULTI-TENANCY
 
@@ -45,8 +42,7 @@ This plugin can operate in two contexts where the incoming sender is validated a
 
 ## Authentication
 
-Email has several authentication mechanisms that can validate that a sending host
-has authority to send on behalf of the [purported] domain:
+Email has several authentication mechanisms that can validate that a sending host has authority to send on behalf of the [purported] domain:
 
 - FCrDNS: [Forward Confirmed reverse DNS](https://en.wikipedia.org/wiki/Forward-confirmed_reverse_DNS)
 - SPF: [Sender Policy Framework](https://en.wikipedia.org/wiki/Sender_Policy_Framework)
