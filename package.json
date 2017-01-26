@@ -31,6 +31,6 @@
     "haraka-test-fixtures": "*"
   },
   "dependencies": {
-    "haraka-tld": "^1.0.12"
+    "haraka-tld": "*"
   }
 }
