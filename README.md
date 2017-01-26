@@ -1,6 +1,8 @@
 # haraka-plugin-known-senders
 
-Boost the reputation of domains you send email to.
+[![Greenkeeper badge](https://badges.greenkeeper.io/haraka/haraka-plugin-known-senders.svg)](https://greenkeeper.io/)
+
+Increase the reputation of domains you send email to.
 
 
 ## How it works
