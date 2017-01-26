@@ -1,6 +1,6 @@
 {
   "name": "haraka-plugin-known-senders",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Increase the reputation of recognized sender domains.",
   "main": "index.js",
   "scripts": {
@@ -28,7 +28,8 @@
   "devDependencies": {
     "address-rfc2821": "*",
     "eslint": "^3",
-    "haraka-test-fixtures": "*"
+    "haraka-test-fixtures": "*",
+    "mocha": "^3.2.0"
   },
   "dependencies": {
     "haraka-tld": "*"
