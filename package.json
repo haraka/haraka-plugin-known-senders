@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "lint": "./node_modules/.bin/eslint *.js test/*.js",
+    "lintfix": "./node_modules/.bin/eslint --fix *.js test/*.js",
     "test": "mocha"
   },
   "repository": {
@@ -27,9 +28,10 @@
   "homepage": "https://github.com/haraka/haraka-plugin-known-senders#readme",
   "devDependencies": {
     "address-rfc2821": "*",
-    "eslint": "^3",
+    "eslint": ">=3",
+    "eslint-plugin-haraka": "*",
     "haraka-test-fixtures": "*",
-    "mocha": "^3.2.0"
+    "mocha": "*"
   },
   "dependencies": {
     "haraka-tld": "*"
