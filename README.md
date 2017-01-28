@@ -64,6 +64,6 @@ nyet: [![Coverage Status][cov-img]][cov-url]
 [apv-img]: https://ci.appveyor.com/api/projects/status/lme4otppxe22me0j/branch/master?svg=true
 [apv-url]: https://ci.appveyor.com/project/msimerson/haraka-plugin-known-senders/branch/master
 [gk-img]: https://badges.greenkeeper.io/haraka/haraka-plugin-known-senders.svg
-[gk-curl]: https://greenkeeper.io/
+[gk-url]: https://greenkeeper.io/
 [npm-img]: https://nodei.co/npm/haraka-plugin-known-senders.png
 [npm-url]: https://www.npmjs.com/package/haraka-plugin-known-senders
