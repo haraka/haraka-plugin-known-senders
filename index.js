@@ -131,11 +131,11 @@ exports.is_authenticated = function (next, connection, params) {
   var sender_od = plugin.get_sender_domain_by_txn(connection.transaction);
 
   if (plugin.has_fcrdns_match(sender_od, connection)) {
-    connection.loginfo(plugin, '+fcrdns: ' + sender_od);
+    connection.logdebug(plugin, '+fcrdns: ' + sender_od);
     return next(null, null, sender_od);
   }
   if (plugin.has_spf_match(sender_od, connection)) {
-    connection.loginfo(plugin, '+spf: ' + sender_od);
+    connection.logdebug(plugin, '+spf: ' + sender_od);
     return next(null, null, sender_od);
   }
 
@@ -201,7 +201,7 @@ exports.check_recipient = function (next, connection, rcpt) {
       plugin.logerror(err);
       return next();
     }
-    connection.loginfo(plugin, rcpt_od + ' : ' + sender_od + ' : ' + reply);
+    connection.logdebug(plugin, rcpt_od + ' : ' + sender_od + ' : ' + reply);
     if (reply) {
       connection.transaction.results.add(plugin, { pass: rcpt_od, count: reply });
     }
@@ -229,7 +229,7 @@ exports.is_dkim_authenticated = function (next, connection) {
   if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
 
   var dkim = connection.transaction.results.get('dkim_verify');
-  if (!dkim) return errNext('no dkim_verify results');
+  if (!dkim) return next();
   if (!dkim.pass || !dkim.pass.length) return errNext('no dkim pass');
 
   var multi = plugin.db.multi();
@@ -251,9 +251,12 @@ exports.is_dkim_authenticated = function (next, connection) {
     }
 
     for (let j = 0; j < rcpt_ods.length; j++) {
-      connection.loginfo(plugin, rcpt_ods[j] + ' : ' + sender_od + ' : ' + replies[j]);
       if (replies[j]) {
-        connection.transaction.results.add(plugin, { pass: rcpt_ods[j], count: replies[j] });
+        connection.transaction.results.add(plugin, {
+          pass: rcpt_ods[j],
+          count: replies[j],
+          emit: true
+        });
       }
     }
     return next(null, null, rcpt_ods);
@@ -266,7 +269,7 @@ exports.has_fcrdns_match = function (sender_od, connection) {
   if (!fcrdns) return false;
   if (!fcrdns.fcrdns) return false;
 
-  connection.loginfo(plugin, fcrdns.fcrdns);
+  connection.logdebug(plugin, fcrdns.fcrdns);
 
   var mail_host = fcrdns.fcrdns;
   if (Array.isArray(mail_host)) mail_host = fcrdns.fcrdns[0];
@@ -274,7 +277,9 @@ exports.has_fcrdns_match = function (sender_od, connection) {
   var fcrdns_od = tlds.get_organizational_domain(mail_host);
   if (fcrdns_od !== sender_od) return false;
 
-  connection.transaction.results.add(plugin, {sender: sender_od, auth: 'fcrdns'});
+  connection.transaction.results.add(plugin, {
+    sender: sender_od, auth: 'fcrdns', emit: true
+  });
   return true;
 }
 
@@ -294,11 +299,12 @@ exports.has_spf_match = function (sender_od, connection) {
   if (spf && spf.domain && spf.result === 'Pass') {
     // scope=mfrom (HELO/EHLO)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
-      connection.transaction.results.add(plugin, {sender: sender_od, auth: 'spf' });
+      connection.transaction.results.add(plugin, {
+        sender: sender_od, auth: 'spf', emit: true
+      });
       return true;
     }
   }
 
-  // this.loginfo(spf);
   return false;
 }
