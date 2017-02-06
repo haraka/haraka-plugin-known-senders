@@ -11,10 +11,10 @@ exports.register = function () {
   plugin.register_hook('init_master',  'init_redis_plugin');
   plugin.register_hook('init_child',   'init_redis_plugin');
 
-  plugin.register_hook('mail',      'is_authenticated');
-  plugin.register_hook('rcpt_ok',   'check_recipient');
-  plugin.register_hook('queue_ok',  'update_sender');
-  plugin.register_hook('data_post', 'is_dkim_authenticated');
+  plugin.register_hook('mail',       'is_authenticated');
+  plugin.register_hook('rcpt_ok',    'check_recipient');
+  plugin.register_hook('queue_ok',   'update_sender');
+  plugin.register_hook('data_post',  'is_dkim_authenticated');
 }
 
 exports.load_sender_ini = function () {
@@ -55,7 +55,7 @@ exports.update_sender = function (next, connection, params) {
   var sender_od = plugin.get_sender_domain_by_txn(txn);
   if (!sender_od) return errNext('no sender domain');
 
-  var rcpt_domains = plugin.get_recipient_domains(txn);
+  var rcpt_domains = plugin.get_recipient_domains_by_txn(txn);
   if (rcpt_domains.length === 0) {
     return errNext('no rcpt ODs for ' + sender_od);
   }
@@ -91,17 +91,17 @@ exports.get_sender_domain_by_txn = function (txn) {
   return sender_od;
 }
 
-exports.get_recipient_domains = function (txn) {
+exports.get_recipient_domains_by_txn = function (txn) {
   var plugin = this;
 
   var rcpt_domains = [];
-  if (!txn.rcpt_to) return;
+  if (!txn.rcpt_to) return rcpt_domains;
 
   for (let i=0; i < txn.rcpt_to.length; i++) {
     if (!txn.rcpt_to[i].host) continue;
     var rcpt_od = tlds.get_organizational_domain(txn.rcpt_to[i].host);
     if (txn.rcpt_to[i].host !== rcpt_od) {
-      plugin.logdebug('rcpt: ' + txn.rcpt_to[i].host + ' -> ' + rcpt_od);
+      plugin.loginfo('rcpt: ' + txn.rcpt_to[i].host + ' -> ' + rcpt_od);
     }
     if (rcpt_domains.indexOf(rcpt_od) === -1) {
       // not a duplicate, add to the list
@@ -165,7 +165,7 @@ exports.get_rcpt_ods = function (connection) {
 }
 
 function already_matched (connection) {
-  var res = connection.transaction.results.get({ name: 'known-senders'});
+  var res = connection.transaction.results.get(this);
   if (!res) return false;
   return (res.pass && res.pass.length) ? true : false;
 }

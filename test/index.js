@@ -173,7 +173,7 @@ describe('get_rcpt_ods', function () {
   });
 });
 
-describe('get_sender_domain_by_txn', function() {
+describe('get_sender_domain_by_txn', function () {
 
   beforeEach(function (done) {
     this.plugin = new fixtures.plugin('known-senders');
@@ -201,6 +201,47 @@ describe('get_sender_domain_by_txn', function() {
     var plugin = this.plugin;
     this.connection.transaction.mail_from = new Address('<user@anything.bbc.co.uk>');
     assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'bbc.co.uk');
+    done();
+  });
+});
+
+describe('get_recipient_domains_by_txn', function () {
+
+  beforeEach(function (done) {
+    this.plugin = new fixtures.plugin('known-senders');
+
+    this.connection = new fixtures.connection.createConnection();
+    this.connection.transaction = new fixtures.transaction.createTransaction();
+    this.connection.transaction.results = new fixtures.result_store(this.connection);
+    done();
+  });
+
+  it('retrieves domains from txn recipients: example.com', function (done) {
+    var plugin = this.plugin;
+    var txn = this.connection.transaction;
+    txn.rcpt_to.push(new Address('<user@example.com>'));
+    var rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms);
+    done();
+  });
+
+  it('retrieves domains from txn recipients: example[1-2].com', function (done) {
+    var plugin = this.plugin;
+    var txn = this.connection.transaction;
+    txn.rcpt_to.push(new Address('<user@example1.com>'));
+    txn.rcpt_to.push(new Address('<user@example2.com>'));
+    var rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    assert.deepEqual(rcpt_doms, ['example1.com', 'example2.com'], rcpt_doms);
+    done();
+  });
+
+  it('retrieves unique domains from txn recipients: example.com', function (done) {
+    var plugin = this.plugin;
+    var txn = this.connection.transaction;
+    txn.rcpt_to.push(new Address('<user1@example.com>'));
+    txn.rcpt_to.push(new Address('<user2@example.com>'));
+    var rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms);
     done();
   });
 });
