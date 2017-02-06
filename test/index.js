@@ -36,6 +36,16 @@ describe('is_authenticated', function () {
     connection);
   });
 
+  it('finds OD from FCrDNS array match', function (done) {
+    connection.transaction.mail_from = new Address('<johndoe@validated-test.com>');
+    connection.results.add({ name: 'fcrdns'}, {fcrdns: ['validated-test.com'] });
+    plugin.is_authenticated(function (null1, null2, sender_od) {
+      assert.equal(sender_od, 'validated-test.com');
+      done();
+    },
+    connection);
+  });
+
   it('misses OD on FCrDNS miss', function (done) {
     connection.transaction.mail_from = new Address('<johndoe@invalid-test.com>');
     connection.results.add({ name: 'fcrdns'}, {fcrdns: 'valid-test.com'});
@@ -157,31 +167,68 @@ describe('update_sender', function () {
   });
 });
 
-describe('is_dkim_authenticated', function () {
+describe('get_rcpt_ods', function () {
+  it('always returns an array', function (done) {
+    done();
+  });
+});
 
-  var plugin = fixtures.plugin('index');
-  plugin.db = {
-    multi : function () { return plugin.db; },
-    hget : function () {},
-    hincrby : function () {},
-    exec: function (cb) { cb(null, []); },
-  }
-  var connection;
+describe('get_sender_domain_by_txn', function() {
 
   beforeEach(function (done) {
-    connection = fixtures.connection.createConnection();
-    connection.transaction = fixtures.transaction.createTransaction();
-    connection.transaction.results = new fixtures.result_store(connection);
+    this.plugin = new fixtures.plugin('known-senders');
+    this.connection = new fixtures.connection.createConnection();
+    this.connection.transaction = new fixtures.transaction.createTransaction();
+    this.connection.transaction.results = new fixtures.result_store(this.connection);
+    done();
+  });
+
+  it('returns a sender domain: example.com', function (done) {
+    var plugin = this.plugin;
+    this.connection.transaction.mail_from = new Address('<user@mail.example.com>');
+    assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
+    done();
+  });
+
+  it('returns a sender domain: mail.example.com', function (done) {
+    var plugin = this.plugin;
+    this.connection.transaction.mail_from = new Address('<user@mail.example.com>');
+    assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
+    done();
+  });
+
+  it('returns a sender domain: bbc.co.uk', function (done) {
+    var plugin = this.plugin;
+    this.connection.transaction.mail_from = new Address('<user@anything.bbc.co.uk>');
+    assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'bbc.co.uk');
+    done();
+  });
+});
+
+describe('is_dkim_authenticated', function () {
+
+  beforeEach(function (done) {
+    this.plugin = new fixtures.plugin('known-senders');
+
+    this.plugin.inherits('haraka-plugin-redis');
+    this.plugin.init_redis_plugin(function () {});
+
+    this.connection = new fixtures.connection.createConnection();
+    this.connection.transaction = new fixtures.transaction.createTransaction();
+    this.connection.transaction.results = new fixtures.result_store(this.connection);
     done();
   });
 
   it('finds dkim results', function (done) {
-    connection.transaction.results.add(plugin, { sender: 'sender.com' });
-    connection.transaction.results.push(plugin, { rcpt_ods: 'rcpt.com' });
-    connection.transaction.results.add({name: 'dkim_verify'}, { pass: 'sender.com'});
+    var plugin = this.plugin;
+    var connection = this.connection;
+    var txn = this.connection.transaction;
+    txn.results.add(plugin,  { sender: 'sender.com' });
+    txn.results.push(plugin, { rcpt_ods: 'rcpt.com' });
+    txn.results.add({ name: 'dkim_verify'}, { pass: 'sender.com'});
 
     plugin.is_dkim_authenticated(function () {
-      var res = connection.transaction.results.get(plugin.name);
+      var res = txn.results.get(plugin.name);
       assert.equal('dkim', res.auth);
       done();
     },

@@ -4,7 +4,7 @@ var tlds = require('haraka-tld');
 
 exports.register = function () {
   var plugin = this;
-  plugin.inherits('redis');
+  plugin.inherits('haraka-plugin-redis');
 
   plugin.load_sender_ini();
 
@@ -52,7 +52,7 @@ exports.update_sender = function (next, connection, params) {
   if (!connection.relaying) return next();
   var txn = connection.transaction;
 
-  var sender_od = plugin.get_sender_domain(txn);
+  var sender_od = plugin.get_sender_domain_by_txn(txn);
   if (!sender_od) return errNext('no sender domain');
 
   var rcpt_domains = plugin.get_recipient_domains(txn);
@@ -79,7 +79,7 @@ exports.update_sender = function (next, connection, params) {
   });
 }
 
-exports.get_sender_domain = function (txn) {
+exports.get_sender_domain_by_txn = function (txn) {
   var plugin = this;
 
   if (!txn.mail_from) return;
@@ -128,7 +128,7 @@ exports.is_authenticated = function (next, connection, params) {
   // only validate inbound messages
   if (connection.relaying) return next();
 
-  var sender_od = plugin.get_sender_domain(connection.transaction);
+  var sender_od = plugin.get_sender_domain_by_txn(connection.transaction);
 
   if (plugin.has_fcrdns_match(sender_od, connection)) {
     connection.loginfo(plugin, '+fcrdns: ' + sender_od);
@@ -139,12 +139,12 @@ exports.is_authenticated = function (next, connection, params) {
     return next(null, null, sender_od);
   }
 
-  // TODO: TLS verified domain?
+  // Maybe: TLS verified domain?
 
   return next();
 }
 
-exports.get_sender_od = function (connection) {
+exports.get_validated_sender_od = function (connection) {
   var plugin = this;
   if (!connection) return;
   if (!connection.transaction) return;
@@ -155,11 +155,11 @@ exports.get_sender_od = function (connection) {
 
 exports.get_rcpt_ods = function (connection) {
   var plugin = this;
-  if (!connection) return;
-  if (!connection.transaction) return;
+  if (!connection) return [];
+  if (!connection.transaction) return [];
 
   var txn_r = connection.transaction.results.get(plugin.name);
-  if (!txn_r) return;
+  if (!txn_r) return [];
 
   return txn_r.rcpt_ods;
 }
@@ -192,7 +192,7 @@ exports.check_recipient = function (next, connection, rcpt) {
   connection.transaction.results.push(plugin, { rcpt_ods: rcpt_od });
 
   // if no validated sender domain, there's nothing to do...yet
-  var sender_od = plugin.get_sender_od(connection);
+  var sender_od = plugin.get_validated_sender_od(connection);
   if (!sender_od) return next();
 
   // The sender OD is validated, check Redis for a match
@@ -213,6 +213,8 @@ exports.is_dkim_authenticated = function (next, connection) {
   var plugin = this;
   if (connection.relaying) return next();
 
+  var rcpt_ods = [];
+
   function errNext (err) {
     connection.logerror(plugin, 'is_dkim_authenticated: ' + err);
     return next(null, null, rcpt_ods);
@@ -220,10 +222,10 @@ exports.is_dkim_authenticated = function (next, connection) {
 
   if (already_matched(connection)) return errNext('already matched');
 
-  var sender_od = plugin.get_sender_od(connection);
+  var sender_od = plugin.get_validated_sender_od(connection);
   if (!sender_od) return errNext('no sender_od');
 
-  var rcpt_ods = plugin.get_rcpt_ods(connection);
+  rcpt_ods = plugin.get_rcpt_ods(connection);
   if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
 
   var dkim = connection.transaction.results.get('dkim_verify');
@@ -245,7 +247,7 @@ exports.is_dkim_authenticated = function (next, connection) {
   multi.exec(function (err, replies) {
     if (err) {
       connection.logerror(plugin, err);
-      return next();
+      return errNext(err);
     }
 
     for (let j = 0; j < rcpt_ods.length; j++) {
@@ -266,7 +268,10 @@ exports.has_fcrdns_match = function (sender_od, connection) {
 
   connection.loginfo(plugin, fcrdns.fcrdns);
 
-  var fcrdns_od = tlds.get_organizational_domain(fcrdns.fcrdns);
+  var mail_host = fcrdns.fcrdns;
+  if (Array.isArray(mail_host)) mail_host = fcrdns.fcrdns[0];
+
+  var fcrdns_od = tlds.get_organizational_domain(mail_host);
   if (fcrdns_od !== sender_od) return false;
 
   connection.transaction.results.add(plugin, {sender: sender_od, auth: 'fcrdns'});
