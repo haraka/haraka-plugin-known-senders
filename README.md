@@ -1,6 +1,6 @@
 [![Build Status][ci-img]][ci-url]
-[![Code Climate][clim-img]][clim-url]
 [![Windows Build status][apv-img]][apv-url]
+[![Code Climate][clim-img]][clim-url]
 [![Greenkeeper badge][gk-img]][gk-url]
 [![NPM][npm-img]][npm-url]
 
@@ -61,7 +61,7 @@ nyet: [![Coverage Status][cov-img]][cov-url]
 [cov-url]: https://codecov.io/github/haraka/haraka-plugin-known-senders?branch=master
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders
-[apv-img]: https://ci.appveyor.com/api/projects/status/lme4otppxe22me0j/branch/master?svg=true
+[apv-img]: https://ci.appveyor.com/api/projects/status/l6wgun9wp9lbhc4h/branch/master?svg=true
 [apv-url]: https://ci.appveyor.com/project/msimerson/haraka-plugin-known-senders/branch/master
 [gk-img]: https://badges.greenkeeper.io/haraka/haraka-plugin-known-senders.svg
 [gk-url]: https://greenkeeper.io/
