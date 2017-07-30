@@ -1,6 +1,6 @@
 [![Build Status][ci-img]][ci-url]
-[![Code Climate][clim-img]][clim-url]
 [![Windows Build status][apv-img]][apv-url]
+[![Code Climate][clim-img]][clim-url]
 [![Greenkeeper badge][gk-img]][gk-url]
 [![NPM][npm-img]][npm-url]
 
