@@ -140,6 +140,12 @@ exports.is_authenticated = function (next, connection, params) {
   }
 
   // Maybe: TLS verified domain?
+  if (connection.tls.verified) {
+    // TODO: get the CN and Subject Alternative Names of the cert
+    // then look for match with sender_od
+    connection.logdebug(plugin, '+tls: ' + sender_od);
+    // return next(null, null, sender_od);
+  }
 
   return next();
 }

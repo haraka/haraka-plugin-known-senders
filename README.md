@@ -6,16 +6,15 @@
 
 # haraka-plugin-known-senders
 
-Increase the reputation of domains you send email to, simply by sending them email.
+Increase the reputation of domains you exchange email with by sending them email.
 
 ## Synopsis
 
 Known Senders is based on the premise that domains users send email to are domains they also want to receive email from. By maintaining lists of domains that local users send email to, a weak but helpful form of automatic whitelisting is obtained.
 
-
 ## How it works
 
-This plugin inspects outgoing emails and adds the destination domains to a known senders database. When emails arrive from those known senders, this plugin stores a result object with the passing domain(s) name.
+This plugin inspects outgoing emails and adds the destination domains to a known senders database. When emails arrive from those known sending domains, this plugin stores a result object with the passing domain(s) name.
 
 ### TL;DR
 
