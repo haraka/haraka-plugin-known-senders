@@ -1,13 +1,13 @@
 
-var assert   = require('assert');
+const assert   = require('assert');
 
-var Address  = require('address-rfc2821').Address;
-var fixtures = require('haraka-test-fixtures');
+const Address  = require('address-rfc2821').Address;
+const fixtures = require('haraka-test-fixtures');
 
 describe('is_authenticated', function () {
 
-  var plugin = fixtures.plugin('index');
-  var connection;
+  const plugin = fixtures.plugin('index');
+  let connection;
 
   beforeEach(function (done) {
     connection = fixtures.connection.createConnection();
@@ -88,7 +88,7 @@ describe('is_authenticated', function () {
 });
 
 describe('check_recipient', function () {
-  var connection;
+  let connection;
 
   beforeEach(function (done) {
     connection = fixtures.connection.createConnection();
@@ -99,11 +99,11 @@ describe('check_recipient', function () {
   });
 
   it('reduces domain to OD', function (done) {
-    var plugin = fixtures.plugin('index');
+    const plugin = fixtures.plugin('index');
     plugin.validated_sender_od = 'example.com';
 
     plugin.check_recipient(function () {
-      var res = connection.transaction.results.get(plugin.name);
+      const res = connection.transaction.results.get(plugin.name);
       assert.equal(res.rcpt_ods[0], 'example.com');
       done();
     },
@@ -114,14 +114,14 @@ describe('check_recipient', function () {
 
 describe('update_sender', function () {
 
-  var plugin = fixtures.plugin('index');
+  const plugin = fixtures.plugin('index');
   plugin.db = {
     multi :function () { return plugin.db; },
     hget : function () {},
     hincrby : function () {},
     exec: function (cb) { if (cb) cb(null, []); },
   }
-  var connection;
+  let connection;
 
   beforeEach(function (done) {
     connection = fixtures.connection.createConnection();
@@ -184,21 +184,21 @@ describe('get_sender_domain_by_txn', function () {
   });
 
   it('returns a sender domain: example.com', function (done) {
-    var plugin = this.plugin;
+    const plugin = this.plugin;
     this.connection.transaction.mail_from = new Address('<user@mail.example.com>');
     assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
     done();
   });
 
   it('returns a sender domain: mail.example.com', function (done) {
-    var plugin = this.plugin;
+    const plugin = this.plugin;
     this.connection.transaction.mail_from = new Address('<user@mail.example.com>');
     assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
     done();
   });
 
   it('returns a sender domain: bbc.co.uk', function (done) {
-    var plugin = this.plugin;
+    const plugin = this.plugin;
     this.connection.transaction.mail_from = new Address('<user@anything.bbc.co.uk>');
     assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'bbc.co.uk');
     done();
@@ -217,30 +217,30 @@ describe('get_recipient_domains_by_txn', function () {
   });
 
   it('retrieves domains from txn recipients: example.com', function (done) {
-    var plugin = this.plugin;
-    var txn = this.connection.transaction;
+    const plugin = this.plugin;
+    const txn = this.connection.transaction;
     txn.rcpt_to.push(new Address('<user@example.com>'));
-    var rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    const rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
     assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms);
     done();
   });
 
   it('retrieves domains from txn recipients: example[1-2].com', function (done) {
-    var plugin = this.plugin;
-    var txn = this.connection.transaction;
+    const plugin = this.plugin;
+    const txn = this.connection.transaction;
     txn.rcpt_to.push(new Address('<user@example1.com>'));
     txn.rcpt_to.push(new Address('<user@example2.com>'));
-    var rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    const rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
     assert.deepEqual(rcpt_doms, ['example1.com', 'example2.com'], rcpt_doms);
     done();
   });
 
   it('retrieves unique domains from txn recipients: example.com', function (done) {
-    var plugin = this.plugin;
-    var txn = this.connection.transaction;
+    const plugin = this.plugin;
+    const txn = this.connection.transaction;
     txn.rcpt_to.push(new Address('<user1@example.com>'));
     txn.rcpt_to.push(new Address('<user2@example.com>'));
-    var rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    const rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
     assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms);
     done();
   });
@@ -261,15 +261,15 @@ describe('is_dkim_authenticated', function () {
   });
 
   it('finds dkim results', function (done) {
-    var plugin = this.plugin;
-    var connection = this.connection;
-    var txn = this.connection.transaction;
+    const plugin = this.plugin;
+    const connection = this.connection;
+    const txn = this.connection.transaction;
     txn.results.add(plugin,  { sender: 'sender.com' });
     txn.results.push(plugin, { rcpt_ods: 'rcpt.com' });
     txn.results.add({ name: 'dkim_verify'}, { pass: 'sender.com'});
 
     plugin.is_dkim_authenticated(function () {
-      var res = txn.results.get(plugin.name);
+      const res = txn.results.get(plugin.name);
       assert.equal('dkim', res.auth);
       done();
     },
