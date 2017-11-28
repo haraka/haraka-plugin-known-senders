@@ -257,8 +257,14 @@ describe('is_dkim_authenticated', function () {
     this.connection = new fixtures.connection.createConnection();
     this.connection.transaction = new fixtures.transaction.createTransaction();
     this.connection.transaction.results = new fixtures.result_store(this.connection);
+
     done();
   });
+
+  after(function (done) {
+    this.plugin.shutdown();
+    done()
+  })
 
   it('finds dkim results', function (done) {
     const plugin = this.plugin;
