@@ -225,6 +225,10 @@ exports.is_dkim_authenticated = function (next, connection) {
     connection.logerror(plugin, 'is_dkim_authenticated: ' + err);
     return next(null, null, rcpt_ods);
   }
+  function infoNext (err) {
+    connection.loginfo(plugin, 'is_dkim_authenticated: ' + err);
+    return next(null, null, rcpt_ods);
+  }
 
   if (already_matched(connection)) return errNext('already matched');
 
@@ -235,8 +239,8 @@ exports.is_dkim_authenticated = function (next, connection) {
   if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
 
   const dkim = connection.transaction.results.get('dkim_verify');
-  if (!dkim) return next();
-  if (!dkim.pass || !dkim.pass.length) return errNext('no dkim pass');
+  if (!dkim) return infoNext('no dkim_verify results');
+  if (!dkim.pass || !dkim.pass.length) return infoNext('no dkim pass')
 
   const multi = plugin.db.multi();
 
