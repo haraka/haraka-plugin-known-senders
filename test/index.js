@@ -85,7 +85,7 @@ describe('is_authenticated', function () {
     },
     connection);
   });
-});
+})
 
 describe('check_recipient', function () {
   let connection;
@@ -110,7 +110,7 @@ describe('check_recipient', function () {
     connection,
     new Address('<user@host.example.com>'));
   });
-});
+})
 
 describe('update_sender', function () {
 
@@ -165,13 +165,13 @@ describe('update_sender', function () {
     },
     connection);
   });
-});
+})
 
 describe('get_rcpt_ods', function () {
   it('always returns an array', function (done) {
     done();
   });
-});
+})
 
 describe('get_sender_domain_by_txn', function () {
 
@@ -203,7 +203,7 @@ describe('get_sender_domain_by_txn', function () {
     assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'bbc.co.uk');
     done();
   });
-});
+})
 
 describe('get_recipient_domains_by_txn', function () {
 
@@ -244,7 +244,7 @@ describe('get_recipient_domains_by_txn', function () {
     assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms);
     done();
   });
-});
+})
 
 describe('is_dkim_authenticated', function () {
 
@@ -259,7 +259,7 @@ describe('is_dkim_authenticated', function () {
     this.connection.transaction.results = new fixtures.result_store(this.connection);
 
     done();
-  });
+  })
 
   after(function (done) {
     this.plugin.shutdown();
@@ -280,5 +280,5 @@ describe('is_dkim_authenticated', function () {
       done();
     },
     connection);
-  });
-});
+  })
+})

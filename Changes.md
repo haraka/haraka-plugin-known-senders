@@ -1,4 +1,8 @@
 
+# 1.0.6 - 2018-12-06
+
+- move declarations up to restore `var` variable hoisting behavior
+
 # 1.0.5 - 2018-11-16
 
 - reduce severity of log message when no passing dkim results
