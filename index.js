@@ -41,6 +41,9 @@ exports.update_sender = function (next, connection, params) {
   // queue_ok arguments: next, connection, msg
   // ok 1390590369 qp 634 (F82E2DD5-9238-41DC-BC95-9C3A02716AD2.1)
 
+  let sender_od;
+  let rcpt_domains;
+
   function errNext (err) {
     connection.logerror(plugin, 'update_sender: ' + err);
     next(null, null, sender_od, rcpt_domains);
@@ -52,10 +55,10 @@ exports.update_sender = function (next, connection, params) {
   if (!connection.relaying) return next();
   const txn = connection.transaction;
 
-  const sender_od = plugin.get_sender_domain_by_txn(txn);
+  sender_od = plugin.get_sender_domain_by_txn(txn);
   if (!sender_od) return errNext('no sender domain');
 
-  const rcpt_domains = plugin.get_recipient_domains_by_txn(txn);
+  rcpt_domains = plugin.get_recipient_domains_by_txn(txn);
   if (rcpt_domains.length === 0) {
     return errNext('no rcpt ODs for ' + sender_od);
   }
