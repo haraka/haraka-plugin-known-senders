@@ -76,7 +76,7 @@ exports.update_sender = function (next, connection, params) {
       return next();
     }
     for (let i = 0; i < rcpt_domains.length; i++) {
-      connection.loginfo(plugin, 'saved ' + sender_od + ' : ' + rcpt_domains[i] + ' : ' + replies[i]);
+      connection.loginfo(plugin, `saved ${sender_od} : ${rcpt_domains[i]} : ${replies[i]}`);
     }
     next(null, null, sender_od, rcpt_domains);
   });
@@ -89,7 +89,7 @@ exports.get_sender_domain_by_txn = function (txn) {
   if (!txn.mail_from.host) return;
   const sender_od = tlds.get_organizational_domain(txn.mail_from.host);
   if (txn.mail_from.host !== sender_od) {
-    plugin.logdebug('sender: ' + txn.mail_from.host + ' -> ' + sender_od);
+    plugin.logdebug(`sender: ${txn.mail_from.host} -> ${sender_od}`);
   }
   return sender_od;
 }
@@ -134,11 +134,11 @@ exports.is_authenticated = function (next, connection, params) {
   const sender_od = plugin.get_sender_domain_by_txn(connection.transaction);
 
   if (plugin.has_fcrdns_match(sender_od, connection)) {
-    connection.logdebug(plugin, '+fcrdns: ' + sender_od);
+    connection.logdebug(plugin, `+fcrdns: ${sender_od}`);
     return next(null, null, sender_od);
   }
   if (plugin.has_spf_match(sender_od, connection)) {
-    connection.logdebug(plugin, '+spf: ' + sender_od);
+    connection.logdebug(plugin, `+spf: ${sender_od}`);
     return next(null, null, sender_od);
   }
 
@@ -146,7 +146,7 @@ exports.is_authenticated = function (next, connection, params) {
   if (connection.tls.verified) {
     // TODO: get the CN and Subject Alternative Names of the cert
     // then look for match with sender_od
-    connection.logdebug(plugin, '+tls: ' + sender_od);
+    connection.logdebug(plugin, `+tls: ${sender_od}`);
     // return next(null, null, sender_od);
   }
 
@@ -173,7 +173,7 @@ exports.get_rcpt_ods = function (connection) {
   return txn_r.rcpt_ods;
 }
 
-function already_matched (connection) {
+exports.already_matched = function (connection) {
   const res = connection.transaction.results.get(this);
   if (!res) return false;
   return (res.pass && res.pass.length) ? true : false;
@@ -210,7 +210,7 @@ exports.check_recipient = function (next, connection, rcpt) {
       plugin.logerror(err);
       return next();
     }
-    connection.logdebug(plugin, rcpt_od + ' : ' + sender_od + ' : ' + reply);
+    connection.logdebug(plugin, `${rcpt_od} : ${sender_od} : ${reply}`);
     if (reply) {
       connection.transaction.results.add(plugin, { pass: rcpt_od, count: reply });
     }
@@ -225,15 +225,15 @@ exports.is_dkim_authenticated = function (next, connection) {
   let rcpt_ods = [];
 
   function errNext (err) {
-    connection.logerror(plugin, 'is_dkim_authenticated: ' + err);
+    connection.logerror(plugin, `is_dkim_authenticated: ${err}`);
     return next(null, null, rcpt_ods);
   }
-  function infoNext (err) {
-    connection.loginfo(plugin, 'is_dkim_authenticated: ' + err);
+  function infoNext (msg) {
+    connection.loginfo(plugin, `is_dkim_authenticated: ${msg}`);
     return next(null, null, rcpt_ods);
   }
 
-  if (already_matched(connection)) return errNext('already matched');
+  if (plugin.already_matched(connection)) return errNext('already matched');
 
   const sender_od = plugin.get_validated_sender_od(connection);
   if (!sender_od) return errNext('no sender_od');

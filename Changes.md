@@ -1,4 +1,9 @@
 
+# 1.0.7 - 2019-03-16
+
+- assure already_matched has 'this' in context.
+- add some es6 interpoled strings
+
 # 1.0.6 - 2018-12-06
 
 - move declarations up to restore `var` variable hoisting behavior
@@ -21,4 +26,3 @@
 # 1.0.2 - 2016-02-06
 
 - inherit from haraka-plugin-redis (vs redis)
-
