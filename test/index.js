@@ -7,58 +7,56 @@ const fixtures = require('haraka-test-fixtures');
 describe('is_authenticated', function () {
 
   const plugin = fixtures.plugin('index');
-  let connection;
 
   beforeEach(function (done) {
-    connection = fixtures.connection.createConnection();
-    connection.results = new fixtures.result_store(connection);
-    connection.transaction = fixtures.transaction.createTransaction();
-    connection.transaction.results = new fixtures.result_store(connection);
+    this.connection = fixtures.connection.createConnection();
+    this.connection.results = new fixtures.result_store(this.connection);
+    this.connection.transaction = fixtures.transaction.createTransaction();
+    this.connection.transaction.results = new fixtures.result_store(this.connection);
     done();
-  });
+  })
 
   it('returns empty when no auth found', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@test.com>');
+    this.connection.transaction.mail_from = new Address('<johndoe@test.com>');
     plugin.is_authenticated(function (null1, null2, sender_od) {
       assert.equal(sender_od, undefined);
       done();
-    },
-    connection);
-  });
+    }, this.connection)
+  })
 
   it('finds OD from FCrDNS match', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@validated-test.com>');
-    connection.results.add({ name: 'fcrdns'}, {fcrdns: 'validated-test.com'});
+    this.connection.transaction.mail_from = new Address('<johndoe@validated-test.com>');
+    this.connection.results.add({ name: 'fcrdns'}, {fcrdns: 'validated-test.com'});
     plugin.is_authenticated(function (null1, null2, sender_od) {
       assert.equal(sender_od, 'validated-test.com');
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 
   it('finds OD from FCrDNS array match', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@validated-test.com>');
-    connection.results.add({ name: 'fcrdns'}, {fcrdns: ['validated-test.com'] });
+    this.connection.transaction.mail_from = new Address('<johndoe@validated-test.com>');
+    this.connection.results.add({ name: 'fcrdns'}, {fcrdns: ['validated-test.com'] });
     plugin.is_authenticated(function (null1, null2, sender_od) {
       assert.equal(sender_od, 'validated-test.com');
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 
   it('misses OD on FCrDNS miss', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@invalid-test.com>');
-    connection.results.add({ name: 'fcrdns'}, {fcrdns: 'valid-test.com'});
-    plugin.is_authenticated(function (null1, null2, sender_od) {
+    this.connection.transaction.mail_from = new Address('<johndoe@invalid-test.com>');
+    this.connection.results.add({ name: 'fcrdns'}, {fcrdns: 'valid-test.com'});
+    plugin.is_authenticated((null1, null2, sender_od) => {
       assert.equal(sender_od, undefined);
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 
   it('finds OD on SPF mfrom match', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@spf-mfrom.com>');
-    connection.transaction.results.add({ name: 'spf'}, {
+    this.connection.transaction.mail_from = new Address('<johndoe@spf-mfrom.com>');
+    this.connection.transaction.results.add({ name: 'spf'}, {
       scope: 'mfrom',
       result: 'Pass',
       domain: 'spf-mfrom.com',
@@ -68,23 +66,23 @@ describe('is_authenticated', function () {
       assert.equal(sender_od, 'spf-mfrom.com');
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 
   it('finds OD on SPF helo match', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@helo-pass.com>');
-    connection.results.add({ name: 'spf'}, {
+    this.connection.transaction.mail_from = new Address('<johndoe@helo-pass.com>');
+    this.connection.results.add({ name: 'spf'}, {
       scope: 'helo',
       result: 'Pass',
       domain: 'helo-pass.com',
     });
 
-    plugin.is_authenticated(function (null1, null2, sender_od) {
+    plugin.is_authenticated((null1, null2, sender_od) => {
       assert.equal(sender_od, 'helo-pass.com');
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 })
 
 describe('check_recipient', function () {
@@ -96,20 +94,20 @@ describe('check_recipient', function () {
     connection.transaction = fixtures.transaction.createTransaction();
     connection.transaction.results = new fixtures.result_store(connection);
     done();
-  });
+  })
 
   it('reduces domain to OD', function (done) {
     const plugin = fixtures.plugin('index');
     plugin.validated_sender_od = 'example.com';
 
-    plugin.check_recipient(function () {
+    plugin.check_recipient(() => {
       const res = connection.transaction.results.get(plugin.name);
       assert.equal(res.rcpt_ods[0], 'example.com');
       done();
     },
     connection,
     new Address('<user@host.example.com>'));
-  });
+  })
 })
 
 describe('update_sender', function () {
@@ -252,13 +250,13 @@ describe('is_dkim_authenticated', function () {
     this.plugin = new fixtures.plugin('known-senders');
 
     this.plugin.inherits('haraka-plugin-redis');
-    this.plugin.init_redis_plugin(function () {});
+    this.plugin.init_redis_plugin(() => {
+      done()
+    })
 
     this.connection = new fixtures.connection.createConnection();
     this.connection.transaction = new fixtures.transaction.createTransaction();
     this.connection.transaction.results = new fixtures.result_store(this.connection);
-
-    done();
   })
 
   after(function (done) {
@@ -274,7 +272,7 @@ describe('is_dkim_authenticated', function () {
     txn.results.push(plugin, { rcpt_ods: 'rcpt.com' });
     txn.results.add({ name: 'dkim_verify'}, { pass: 'sender.com'});
 
-    plugin.is_dkim_authenticated(function () {
+    plugin.is_dkim_authenticated(() => {
       const res = txn.results.get(plugin.name);
       assert.equal('dkim', res.auth);
       done();
