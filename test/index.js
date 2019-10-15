@@ -114,10 +114,10 @@ describe('update_sender', function () {
 
   const plugin = fixtures.plugin('index');
   plugin.db = {
-    multi :function () { return plugin.db; },
-    hget : function () {},
-    hincrby : function () {},
-    exec: function (cb) { if (cb) cb(null, []); },
+    multi () { return plugin.db; },
+    hget () {},
+    hincrby () {},
+    exec (cb) { if (cb) cb(null, []); },
   }
   let connection;
 
