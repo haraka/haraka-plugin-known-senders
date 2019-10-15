@@ -4,9 +4,10 @@
   "description": "Increase the reputation of recognized sender domains.",
   "main": "index.js",
   "scripts": {
-    "lint": "./node_modules/.bin/eslint *.js test/*.js",
-    "lintfix": "./node_modules/.bin/eslint --fix *.js test/*.js",
-    "test": "./node_modules/.bin/mocha"
+    "cover": "npx nyc --reporter=lcov --hook-run-in-context npm run test",
+    "lint": "npx eslint *.js test/*.js",
+    "lintfix": "npx eslint --fix *.js test/*.js",
+    "test": "npx _mocha"
   },
   "repository": {
     "type": "git",
@@ -28,7 +29,7 @@
   "homepage": "https://github.com/haraka/haraka-plugin-known-senders#readme",
   "devDependencies": {
     "address-rfc2821": "*",
-    "eslint": ">=3",
+    "eslint": ">=4",
     "eslint-plugin-haraka": "*",
     "haraka-test-fixtures": "*",
     "mocha": "*"
