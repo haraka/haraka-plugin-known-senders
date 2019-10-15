@@ -6,7 +6,7 @@ const fixtures = require('haraka-test-fixtures');
 
 describe('is_authenticated', function () {
 
-  const plugin = fixtures.plugin('index');
+  const plugin = new fixtures.plugin('index');
 
   beforeEach(function (done) {
     this.connection = fixtures.connection.createConnection();
@@ -97,7 +97,7 @@ describe('check_recipient', function () {
   })
 
   it('reduces domain to OD', function (done) {
-    const plugin = fixtures.plugin('index');
+    const plugin = new fixtures.plugin('index');
     plugin.validated_sender_od = 'example.com';
 
     plugin.check_recipient(() => {
@@ -112,7 +112,7 @@ describe('check_recipient', function () {
 
 describe('update_sender', function () {
 
-  const plugin = fixtures.plugin('index');
+  const plugin = new fixtures.plugin('index');
   plugin.db = {
     multi () { return plugin.db; },
     hget () {},
