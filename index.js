@@ -179,7 +179,6 @@ exports.already_matched = function (connection) {
 }
 
 exports.check_recipient = async function (next, connection, rcpt) {
-  const plugin = this;
   // rcpt is a valid local email address. Some rcpt_to.* plugin has
   // accepted it.
 
@@ -187,7 +186,7 @@ exports.check_recipient = async function (next, connection, rcpt) {
   if (connection.relaying) return next();
 
   function errNext (err) {
-    connection.logerror(plugin, `check_recipient: ${err}`);
+    connection.logerror(this, `check_recipient: ${err}`);
     next();
   }
 
@@ -197,48 +196,47 @@ exports.check_recipient = async function (next, connection, rcpt) {
   const rcpt_od = tlds.get_organizational_domain(rcpt.host);
   if (!rcpt_od) return errNext(`no rcpt od for ${rcpt.host}`);
 
-  connection.transaction.results.push(plugin, { rcpt_ods: rcpt_od });
+  connection.transaction.results.push(this, { rcpt_ods: rcpt_od });
 
   // if no validated sender domain, there's nothing to do...yet
-  const sender_od = plugin.get_validated_sender_od(connection);
+  const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return next();
 
   // The sender OD is validated, check Redis for a match
   try {
-    const reply = await plugin.db.hGet(rcpt_od, sender_od)
-    connection.logdebug(plugin, `${rcpt_od} : ${sender_od} : ${reply}`);
+    const reply = await this.db.hGet(rcpt_od, sender_od)
+    connection.logdebug(this, `${rcpt_od} : ${sender_od} : ${reply}`);
     if (reply) {
-      connection.transaction.results.add(plugin, { pass: rcpt_od, count: reply });
+      connection.transaction.results.add(this, { pass: rcpt_od, count: reply });
     }
     next(null, null, rcpt_od);
   }
   catch (err) {
-    plugin.logerror(err);
+    this.logerror(err);
     next();
   }
 }
 
 exports.is_dkim_authenticated = async function (next, connection) {
-  const plugin = this;
   if (connection.relaying) return next();
 
   let rcpt_ods = [];
 
   function errNext (err) {
-    connection.logerror(plugin, `is_dkim_authenticated: ${err}`);
+    connection.logerror(this, `is_dkim_authenticated: ${err}`);
     next(null, null, rcpt_ods);
   }
   function infoNext (msg) {
-    connection.loginfo(plugin, `is_dkim_authenticated: ${msg}`);
+    connection.loginfo(this, `is_dkim_authenticated: ${msg}`);
     next(null, null, rcpt_ods);
   }
 
-  if (plugin.already_matched(connection)) return infoNext('already matched');
+  if (this.already_matched(connection)) return infoNext('already matched');
 
-  const sender_od = plugin.get_validated_sender_od(connection);
+  const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return errNext('no sender_od');
 
-  rcpt_ods = plugin.get_rcpt_ods(connection);
+  rcpt_ods = this.get_rcpt_ods(connection);
   if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
 
   const dkim = connection.transaction.results.get('dkim_verify');
@@ -246,12 +244,12 @@ exports.is_dkim_authenticated = async function (next, connection) {
   if (!dkim.pass || !dkim.pass.length) return infoNext('no dkim pass')
 
   try {
-    const multi = plugin.db.multi();
+    const multi = this.db.multi();
 
     for (let i = 0; i < dkim.pass.length; i++) {
       const dkim_od = tlds.get_organizational_domain(dkim.pass[i]);
       if (dkim_od === sender_od) {
-        connection.transaction.results.add(plugin, { sender: sender_od, auth: 'dkim' });
+        connection.transaction.results.add(this, { sender: sender_od, auth: 'dkim' });
         for (let j = 0; j < rcpt_ods.length; j++) {
           multi.hGet(rcpt_ods[j], sender_od);
         }
@@ -261,7 +259,7 @@ exports.is_dkim_authenticated = async function (next, connection) {
     const replies = await multi.exec()
     for (let j = 0; j < rcpt_ods.length; j++) {
       if (!replies[j]) continue
-      connection.transaction.results.add(plugin, {
+      connection.transaction.results.add(this, {
         pass: rcpt_ods[j],
         count: replies[j],
         emit: true
@@ -270,7 +268,7 @@ exports.is_dkim_authenticated = async function (next, connection) {
     next(null, null, rcpt_ods);
   }
   catch (err) {
-    connection.logerror(plugin, err)
+    connection.logerror(this, err)
     errNext(err)
   }
 }

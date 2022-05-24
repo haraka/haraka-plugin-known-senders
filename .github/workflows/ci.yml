@@ -34,7 +34,6 @@ jobs:
 
   test-win:
     needs: lint
-    if: ${{ false }}  # disabled, until Redis for GHA Windows exists
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -49,3 +48,4 @@ jobs:
         node-version: ${{ matrix.node-version }}
     - run: npm install
     - run: npm test
+      if: ${{ false }}  # disabled, until Redis for GHA Windows exists
