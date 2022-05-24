@@ -3,18 +3,17 @@
 const tlds = require('haraka-tld');
 
 exports.register = function () {
-  const plugin = this;
-  plugin.inherits('haraka-plugin-redis');
+  this.inherits('haraka-plugin-redis');
 
-  plugin.load_sender_ini();
+  this.load_sender_ini();
 
-  plugin.register_hook('init_master',  'init_redis_plugin');
-  plugin.register_hook('init_child',   'init_redis_plugin');
+  this.register_hook('init_master',  'init_redis_plugin');
+  this.register_hook('init_child',   'init_redis_plugin');
 
-  plugin.register_hook('mail',       'is_authenticated');
-  plugin.register_hook('rcpt_ok',    'check_recipient');
-  plugin.register_hook('queue_ok',   'update_sender');
-  plugin.register_hook('data_post',  'is_dkim_authenticated');
+  this.register_hook('mail',       'is_authenticated');
+  this.register_hook('rcpt_ok',    'check_recipient');
+  this.register_hook('queue_ok',   'update_sender');
+  this.register_hook('data_post',  'is_dkim_authenticated');
 }
 
 exports.load_sender_ini = function () {
@@ -36,8 +35,7 @@ exports.load_sender_ini = function () {
  *
 */
 
-exports.update_sender = function (next, connection, params) {
-  const plugin = this;
+exports.update_sender = async function (next, connection, params) {
   // queue_ok arguments: next, connection, msg
   // ok 1390590369 qp 634 (F82E2DD5-9238-41DC-BC95-9C3A02716AD2.1)
 
@@ -45,41 +43,42 @@ exports.update_sender = function (next, connection, params) {
   let rcpt_domains;
 
   function errNext (err) {
-    connection.logerror(plugin, 'update_sender: ' + err);
+    connection.logerror(this, `update_sender: ${err}`);
     next(null, null, sender_od, rcpt_domains);
   }
 
-  // connection.loginfo(plugin, params);
+  // connection.loginfo(this, params);
   if (!connection) return errNext('no connection');
   if (!connection.transaction) return errNext('no transaction');
   if (!connection.relaying) return next();
   const txn = connection.transaction;
 
-  sender_od = plugin.get_sender_domain_by_txn(txn);
+  sender_od = this.get_sender_domain_by_txn(txn);
   if (!sender_od) return errNext('no sender domain');
 
-  rcpt_domains = plugin.get_recipient_domains_by_txn(txn);
+  rcpt_domains = this.get_recipient_domains_by_txn(txn);
   if (rcpt_domains.length === 0) {
-    return errNext('no rcpt ODs for ' + sender_od);
+    return errNext(`no rcpt ODs for ${sender_od}`);
   }
 
   // within this function, the sender is a local domain
   // and the recipient is an external domain
-  const multi = plugin.db.multi();
-  for (let i = 0; i < rcpt_domains.length; i++) {
-    multi.hincrby(sender_od, rcpt_domains[i], 1);
-  }
-
-  multi.exec(function (err, replies) {
-    if (err) {
-      connection.logerror(plugin, err);
-      return next();
-    }
+  try {
+    const multi = this.db.multi();
     for (let i = 0; i < rcpt_domains.length; i++) {
-      connection.loginfo(plugin, `saved ${sender_od} : ${rcpt_domains[i]} : ${replies[i]}`);
+      multi.hIncrBy(sender_od, rcpt_domains[i], 1);
+    }
+
+    const replies = await multi.exec()
+    for (let i = 0; i < rcpt_domains.length; i++) {
+      connection.loginfo(this, `saved ${sender_od} : ${rcpt_domains[i]} : ${replies[i]}`);
     }
     next(null, null, sender_od, rcpt_domains);
-  });
+  }
+  catch (err) {
+    connection.logerror(this, err);
+    next();
+  }
 }
 
 exports.get_sender_domain_by_txn = function (txn) {
@@ -104,7 +103,7 @@ exports.get_recipient_domains_by_txn = function (txn) {
     if (!txn.rcpt_to[i].host) continue;
     const rcpt_od = tlds.get_organizational_domain(txn.rcpt_to[i].host);
     if (txn.rcpt_to[i].host !== rcpt_od) {
-      plugin.loginfo('rcpt: ' + txn.rcpt_to[i].host + ' -> ' + rcpt_od);
+      plugin.loginfo(`rcpt: ${txn.rcpt_to[i].host} -> ${rcpt_od}`);
     }
     if (rcpt_domains.indexOf(rcpt_od) === -1) {
       // not a duplicate, add to the list
@@ -179,8 +178,7 @@ exports.already_matched = function (connection) {
   return (res.pass && res.pass.length) ? true : false;
 }
 
-exports.check_recipient = function (next, connection, rcpt) {
-  const plugin = this;
+exports.check_recipient = async function (next, connection, rcpt) {
   // rcpt is a valid local email address. Some rcpt_to.* plugin has
   // accepted it.
 
@@ -188,7 +186,7 @@ exports.check_recipient = function (next, connection, rcpt) {
   if (connection.relaying) return next();
 
   function errNext (err) {
-    connection.logerror(plugin, 'check_recipient: ' + err);
+    connection.logerror(this, `check_recipient: ${err}`);
     next();
   }
 
@@ -196,93 +194,91 @@ exports.check_recipient = function (next, connection, rcpt) {
 
   // reduce the host portion of the email address to an OD
   const rcpt_od = tlds.get_organizational_domain(rcpt.host);
-  if (!rcpt_od) return errNext('no rcpt od for ' + rcpt.host);
+  if (!rcpt_od) return errNext(`no rcpt od for ${rcpt.host}`);
 
-  connection.transaction.results.push(plugin, { rcpt_ods: rcpt_od });
+  connection.transaction.results.push(this, { rcpt_ods: rcpt_od });
 
   // if no validated sender domain, there's nothing to do...yet
-  const sender_od = plugin.get_validated_sender_od(connection);
+  const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return next();
 
   // The sender OD is validated, check Redis for a match
-  plugin.db.hget(rcpt_od, sender_od, function (err, reply) {
-    if (err) {
-      plugin.logerror(err);
-      return next();
-    }
-    connection.logdebug(plugin, `${rcpt_od} : ${sender_od} : ${reply}`);
+  try {
+    const reply = await this.db.hGet(rcpt_od, sender_od)
+    connection.logdebug(this, `${rcpt_od} : ${sender_od} : ${reply}`);
     if (reply) {
-      connection.transaction.results.add(plugin, { pass: rcpt_od, count: reply });
+      connection.transaction.results.add(this, { pass: rcpt_od, count: reply });
     }
-    return next(null, null, rcpt_od);
-  });
+    next(null, null, rcpt_od);
+  }
+  catch (err) {
+    this.logerror(err);
+    next();
+  }
 }
 
-exports.is_dkim_authenticated = function (next, connection) {
-  const plugin = this;
+exports.is_dkim_authenticated = async function (next, connection) {
   if (connection.relaying) return next();
 
   let rcpt_ods = [];
 
   function errNext (err) {
-    connection.logerror(plugin, `is_dkim_authenticated: ${err}`);
-    return next(null, null, rcpt_ods);
+    connection.logerror(this, `is_dkim_authenticated: ${err}`);
+    next(null, null, rcpt_ods);
   }
   function infoNext (msg) {
-    connection.loginfo(plugin, `is_dkim_authenticated: ${msg}`);
-    return next(null, null, rcpt_ods);
+    connection.loginfo(this, `is_dkim_authenticated: ${msg}`);
+    next(null, null, rcpt_ods);
   }
 
-  if (plugin.already_matched(connection)) return errNext('already matched');
+  if (this.already_matched(connection)) return infoNext('already matched');
 
-  const sender_od = plugin.get_validated_sender_od(connection);
+  const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return errNext('no sender_od');
 
-  rcpt_ods = plugin.get_rcpt_ods(connection);
+  rcpt_ods = this.get_rcpt_ods(connection);
   if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
 
   const dkim = connection.transaction.results.get('dkim_verify');
   if (!dkim) return infoNext('no dkim_verify results');
   if (!dkim.pass || !dkim.pass.length) return infoNext('no dkim pass')
 
-  const multi = plugin.db.multi();
+  try {
+    const multi = this.db.multi();
 
-  for (let i = 0; i < dkim.pass.length; i++) {
-    const dkim_od = tlds.get_organizational_domain(dkim.pass[i]);
-    if (dkim_od === sender_od) {
-      connection.transaction.results.add(plugin, { sender: sender_od, auth: 'dkim' });
-      for (let j = 0; j < rcpt_ods.length; j++) {
-        multi.hget(rcpt_ods[j], sender_od);
+    for (let i = 0; i < dkim.pass.length; i++) {
+      const dkim_od = tlds.get_organizational_domain(dkim.pass[i]);
+      if (dkim_od === sender_od) {
+        connection.transaction.results.add(this, { sender: sender_od, auth: 'dkim' });
+        for (let j = 0; j < rcpt_ods.length; j++) {
+          multi.hGet(rcpt_ods[j], sender_od);
+        }
       }
     }
-  }
 
-  multi.exec(function (err, replies) {
-    if (err) {
-      connection.logerror(plugin, err);
-      return errNext(err);
-    }
-
+    const replies = await multi.exec()
     for (let j = 0; j < rcpt_ods.length; j++) {
-      if (replies[j]) {
-        connection.transaction.results.add(plugin, {
-          pass: rcpt_ods[j],
-          count: replies[j],
-          emit: true
-        });
-      }
+      if (!replies[j]) continue
+      connection.transaction.results.add(this, {
+        pass: rcpt_ods[j],
+        count: replies[j],
+        emit: true
+      });
     }
-    return next(null, null, rcpt_ods);
-  });
+    next(null, null, rcpt_ods);
+  }
+  catch (err) {
+    connection.logerror(this, err)
+    errNext(err)
+  }
 }
 
 exports.has_fcrdns_match = function (sender_od, connection) {
-  const plugin = this;
   const fcrdns = connection.results.get('fcrdns');
   if (!fcrdns) return false;
   if (!fcrdns.fcrdns) return false;
 
-  connection.logdebug(plugin, fcrdns.fcrdns);
+  connection.logdebug(this, fcrdns.fcrdns);
 
   let mail_host = fcrdns.fcrdns;
   if (Array.isArray(mail_host)) mail_host = fcrdns.fcrdns[0];
@@ -290,20 +286,19 @@ exports.has_fcrdns_match = function (sender_od, connection) {
   const fcrdns_od = tlds.get_organizational_domain(mail_host);
   if (fcrdns_od !== sender_od) return false;
 
-  connection.transaction.results.add(plugin, {
+  connection.transaction.results.add(this, {
     sender: sender_od, auth: 'fcrdns', emit: true
   });
   return true;
 }
 
 exports.has_spf_match = function (sender_od, connection) {
-  const plugin = this;
 
   let spf = connection.results.get('spf');
   if (spf && spf.domain && spf.result === 'Pass') {
     // scope=helo (HELO/EHLO)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
-      connection.transaction.results.add(plugin, {sender: sender_od});
+      connection.transaction.results.add(this, {sender: sender_od});
       return true;
     }
   }
@@ -312,7 +307,7 @@ exports.has_spf_match = function (sender_od, connection) {
   if (spf && spf.domain && spf.result === 'Pass') {
     // scope=mfrom (HELO/EHLO)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
-      connection.transaction.results.add(plugin, {
+      connection.transaction.results.add(this, {
         sender: sender_od, auth: 'spf', emit: true
       });
       return true;

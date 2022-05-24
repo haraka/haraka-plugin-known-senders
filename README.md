@@ -1,7 +1,5 @@
 [![Build Status][ci-img]][ci-url]
-[![Windows Build status][apv-img]][apv-url]
 [![Code Climate][clim-img]][clim-url]
-[![Greenkeeper badge][gk-img]][gk-url]
 [![NPM][npm-img]][npm-url]
 
 # haraka-plugin-known-senders
@@ -51,18 +49,10 @@ Mechanisms need not be 100% effective to be useful.
 This plugin can boost the reputation of most marginally deliverable ham. Where it doesn't help is for messages coming from a Windows Exchange server (no DKIM signing support without $$$ 3rd party plugin) on a lame ISPs network that doesn't let them configure reverse DNS and whose admins haven't the clue to set up SPF properly.
 
 
-nyet: [![Coverage Status][cov-img]][cov-url]
-
 
 [ci-img]: https://travis-ci.org/haraka/haraka-plugin-known-senders.svg?branch=master
 [ci-url]: https://travis-ci.org/haraka/haraka-plugin-known-senders
-[cov-img]: https://codecov.io/github/haraka/haraka-plugin-known-senders/coverage.svg
-[cov-url]: https://codecov.io/github/haraka/haraka-plugin-known-senders?branch=master
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders
-[apv-img]: https://ci.appveyor.com/api/projects/status/l6wgun9wp9lbhc4h/branch/master?svg=true
-[apv-url]: https://ci.appveyor.com/project/msimerson/haraka-plugin-known-senders/branch/master
-[gk-img]: https://badges.greenkeeper.io/haraka/haraka-plugin-known-senders.svg
-[gk-url]: https://greenkeeper.io/
 [npm-img]: https://nodei.co/npm/haraka-plugin-known-senders.png
 [npm-url]: https://www.npmjs.com/package/haraka-plugin-known-senders
