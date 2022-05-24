@@ -7,7 +7,7 @@
     "cover": "npx nyc --reporter=lcov --hook-run-in-context npm run test",
     "lint": "npx eslint *.js test/*.js",
     "lintfix": "npx eslint --fix *.js test/*.js",
-    "test": "npx _mocha"
+    "test": "npx mocha --exit"
   },
   "repository": {
     "type": "git",

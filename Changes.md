@@ -1,9 +1,10 @@
 
 ### 1.0.8 - 2022-05-24
 
-- ci: replace travis/appveyor with GHA
+- feat(redis): compatibility with redis 4
 - dep(eslint): 4 -> 8
 - dep(pi-redis): * -> 2
+- ci: replace travis/appveyor with GHA
 - doc(README): badge updates
 
 

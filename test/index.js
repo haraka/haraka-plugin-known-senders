@@ -112,57 +112,59 @@ describe('check_recipient', function () {
 
 describe('update_sender', function () {
 
-  const plugin = new fixtures.plugin('index');
-  plugin.db = {
-    multi () { return plugin.db; },
-    hget () {},
-    hincrby () {},
-    exec (cb) { if (cb) cb(null, []); },
-  }
-  let connection;
-
   beforeEach(function (done) {
-    connection = fixtures.connection.createConnection();
-    connection.relaying = true;
-    connection.transaction = fixtures.transaction.createTransaction();
-    done();
-  });
+    this.connection = fixtures.connection.createConnection();
+    this.connection.relaying = true;
+    this.connection.transaction = fixtures.transaction.createTransaction();
+
+    this.plugin = new fixtures.plugin('index');
+    this.plugin.inherits('haraka-plugin-redis');
+    this.plugin.load_redis_ini()
+    this.plugin.init_redis_plugin(() => {
+      done()
+    })
+  })
+
+  after(function (done) {
+    this.plugin.shutdown();
+    done()
+  })
 
   it('gets the sender domain', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@example.com>');
+    this.connection.transaction.mail_from = new Address('<johndoe@example.com>');
 
-    plugin.update_sender(function (null1, null2, sender_dom, rcpt_doms) {
+    this.plugin.update_sender(function (null1, null2, sender_dom, rcpt_doms) {
       assert.equal(sender_dom, 'example.com');
       assert.deepEqual(rcpt_doms, [])
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 
   it('gets the recipient domain', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@example.com>');
-    connection.transaction.rcpt_to.push(new Address('<jane@test1.com>'));
+    this.connection.transaction.mail_from = new Address('<johndoe@example.com>');
+    this.connection.transaction.rcpt_to.push(new Address('<jane@test1.com>'));
 
-    plugin.update_sender(function (null1, null2, sender_dom, rcpt_doms) {
+    this.plugin.update_sender(function (null1, null2, sender_dom, rcpt_doms) {
       assert.equal(sender_dom, 'example.com');
       assert.deepEqual(rcpt_doms, ['test1.com']);
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 
   it('gets the recipient domains', function (done) {
-    connection.transaction.mail_from = new Address('<johndoe@example.com>');
-    connection.transaction.rcpt_to.push(new Address('<jane@test1.com>'));
-    connection.transaction.rcpt_to.push(new Address('<jane@test2.com>'));
+    this.connection.transaction.mail_from = new Address('<johndoe@example.com>');
+    this.connection.transaction.rcpt_to.push(new Address('<jane@test1.com>'));
+    this.connection.transaction.rcpt_to.push(new Address('<jane@test2.com>'));
 
-    plugin.update_sender(function (null1, null2, sender_dom, rcpt_doms) {
+    this.plugin.update_sender(function (null1, null2, sender_dom, rcpt_doms) {
       assert.equal(sender_dom, 'example.com');
       assert.deepEqual(rcpt_doms, ['test1.com', 'test2.com']);
       done();
     },
-    connection);
-  });
+    this.connection);
+  })
 })
 
 describe('get_rcpt_ods', function () {
@@ -247,16 +249,18 @@ describe('get_recipient_domains_by_txn', function () {
 describe('is_dkim_authenticated', function () {
 
   beforeEach(function (done) {
-    this.plugin = new fixtures.plugin('known-senders');
-
-    this.plugin.inherits('haraka-plugin-redis');
-    this.plugin.init_redis_plugin(() => {
-      done()
-    })
 
     this.connection = new fixtures.connection.createConnection();
     this.connection.transaction = new fixtures.transaction.createTransaction();
     this.connection.transaction.results = new fixtures.result_store(this.connection);
+
+    this.plugin = new fixtures.plugin('known-senders');
+
+    this.plugin.inherits('haraka-plugin-redis');
+    this.plugin.load_redis_ini()
+    this.plugin.init_redis_plugin(() => {
+      done()
+    })
   })
 
   after(function (done) {
@@ -268,6 +272,7 @@ describe('is_dkim_authenticated', function () {
     const plugin = this.plugin;
     const connection = this.connection;
     const txn = this.connection.transaction;
+
     txn.results.add(plugin,  { sender: 'sender.com' });
     txn.results.push(plugin, { rcpt_ods: 'rcpt.com' });
     txn.results.add({ name: 'dkim_verify'}, { pass: 'sender.com'});
