@@ -3,18 +3,17 @@
 const tlds = require('haraka-tld');
 
 exports.register = function () {
-  const plugin = this;
-  plugin.inherits('haraka-plugin-redis');
+  this.inherits('haraka-plugin-redis');
 
-  plugin.load_sender_ini();
+  this.load_sender_ini();
 
-  plugin.register_hook('init_master',  'init_redis_plugin');
-  plugin.register_hook('init_child',   'init_redis_plugin');
+  this.register_hook('init_master',  'init_redis_plugin');
+  this.register_hook('init_child',   'init_redis_plugin');
 
-  plugin.register_hook('mail',       'is_authenticated');
-  plugin.register_hook('rcpt_ok',    'check_recipient');
-  plugin.register_hook('queue_ok',   'update_sender');
-  plugin.register_hook('data_post',  'is_dkim_authenticated');
+  this.register_hook('mail',       'is_authenticated');
+  this.register_hook('rcpt_ok',    'check_recipient');
+  this.register_hook('queue_ok',   'update_sender');
+  this.register_hook('data_post',  'is_dkim_authenticated');
 }
 
 exports.load_sender_ini = function () {
@@ -45,7 +44,7 @@ exports.update_sender = function (next, connection, params) {
   let rcpt_domains;
 
   function errNext (err) {
-    connection.logerror(plugin, 'update_sender: ' + err);
+    connection.logerror(plugin, `update_sender: ${err}`);
     next(null, null, sender_od, rcpt_domains);
   }
 
@@ -60,7 +59,7 @@ exports.update_sender = function (next, connection, params) {
 
   rcpt_domains = plugin.get_recipient_domains_by_txn(txn);
   if (rcpt_domains.length === 0) {
-    return errNext('no rcpt ODs for ' + sender_od);
+    return errNext(`no rcpt ODs for ${sender_od}`);
   }
 
   // within this function, the sender is a local domain
@@ -104,7 +103,7 @@ exports.get_recipient_domains_by_txn = function (txn) {
     if (!txn.rcpt_to[i].host) continue;
     const rcpt_od = tlds.get_organizational_domain(txn.rcpt_to[i].host);
     if (txn.rcpt_to[i].host !== rcpt_od) {
-      plugin.loginfo('rcpt: ' + txn.rcpt_to[i].host + ' -> ' + rcpt_od);
+      plugin.loginfo(`rcpt: ${txn.rcpt_to[i].host} -> ${rcpt_od}`);
     }
     if (rcpt_domains.indexOf(rcpt_od) === -1) {
       // not a duplicate, add to the list
@@ -188,7 +187,7 @@ exports.check_recipient = function (next, connection, rcpt) {
   if (connection.relaying) return next();
 
   function errNext (err) {
-    connection.logerror(plugin, 'check_recipient: ' + err);
+    connection.logerror(plugin, `check_recipient: ${err}`);
     next();
   }
 
@@ -196,7 +195,7 @@ exports.check_recipient = function (next, connection, rcpt) {
 
   // reduce the host portion of the email address to an OD
   const rcpt_od = tlds.get_organizational_domain(rcpt.host);
-  if (!rcpt_od) return errNext('no rcpt od for ' + rcpt.host);
+  if (!rcpt_od) return errNext(`no rcpt od for ${rcpt.host}`);
 
   connection.transaction.results.push(plugin, { rcpt_ods: rcpt_od });
 
