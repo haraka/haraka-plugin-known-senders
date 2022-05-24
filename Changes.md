@@ -5,7 +5,9 @@
 - dep(eslint): 4 -> 8
 - dep(pi-redis): * -> 2
 - ci: replace travis/appveyor with GHA
+- lint: prefer-template
 - doc(README): badge updates
+- style: plugin -> this
 
 
 ### 1.0.7 - 2019-03-16
