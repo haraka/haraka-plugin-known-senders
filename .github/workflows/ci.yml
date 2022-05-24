@@ -20,18 +20,30 @@ jobs:
           - 6379/tcp
     strategy:
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
+        os: [ ubuntu-latest ]
         node-version: [ 14, 16, 18 ]
       fail-fast: false
-
     steps:
     - uses: actions/checkout@v3
-
     - uses: actions/setup-node@v3
       name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
       with:
         node-version: ${{ matrix.node-version }}
-
     - run: npm install
+    - run: npm test
 
+  test-win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ windows-latest ]
+        node-version: [ 14, 16, 18 ]
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      name: Node ${{ matrix.node-version }} on ${{ matrix.os }}
+      with:
+        node-version: ${{ matrix.node-version }}
+    - run: npm install
     - run: npm test
