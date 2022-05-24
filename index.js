@@ -233,7 +233,7 @@ exports.is_dkim_authenticated = function (next, connection) {
     return next(null, null, rcpt_ods);
   }
 
-  if (plugin.already_matched(connection)) return errNext('already matched');
+  if (plugin.already_matched(connection)) return infoNext('already matched');
 
   const sender_od = plugin.get_validated_sender_od(connection);
   if (!sender_od) return errNext('no sender_od');
