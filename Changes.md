@@ -5,6 +5,7 @@
 #### 1.0.9 - 2022-05-28
 
 - restore a plugin = this, context demands it
+- add .release submodule
 
 
 ### 1.0.8 - 2022-05-24
