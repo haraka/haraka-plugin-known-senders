@@ -218,16 +218,17 @@ exports.check_recipient = async function (next, connection, rcpt) {
 }
 
 exports.is_dkim_authenticated = async function (next, connection) {
+  const plugin = this
   if (connection.relaying) return next();
 
   let rcpt_ods = [];
 
   function errNext (err) {
-    connection.logerror(this, `is_dkim_authenticated: ${err}`);
+    connection.logerror(plugin, `is_dkim_authenticated: ${err}`);
     next(null, null, rcpt_ods);
   }
   function infoNext (msg) {
-    connection.loginfo(this, `is_dkim_authenticated: ${msg}`);
+    connection.loginfo(plugin, `is_dkim_authenticated: ${msg}`);
     next(null, null, rcpt_ods);
   }
 
