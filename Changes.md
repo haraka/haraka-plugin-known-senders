@@ -1,4 +1,12 @@
 
+#### N.N.N - YYYY-MM-DD
+
+
+#### 1.0.9 - 2022-05-28
+
+- restore a plugin = this, context demands it
+
+
 ### 1.0.8 - 2022-05-24
 
 - feat(redis): compatibility with redis 4
