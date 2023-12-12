@@ -65,8 +65,8 @@ exports.update_sender = async function (next, connection, params) {
   // and the recipient is an external domain
   try {
     const multi = this.db.multi();
-    for (let i = 0; i < rcpt_domains.length; i++) {
-      multi.hIncrBy(sender_od, rcpt_domains[i], 1);
+    for (const rcptDomain of rcpt_domains) {
+      multi.hIncrBy(sender_od, rcptDomain, 1);
     }
 
     const replies = await multi.exec()
@@ -99,11 +99,11 @@ exports.get_recipient_domains_by_txn = function (txn) {
   const rcpt_domains = [];
   if (!txn.rcpt_to) return rcpt_domains;
 
-  for (let i=0; i < txn.rcpt_to.length; i++) {
-    if (!txn.rcpt_to[i].host) continue;
-    const rcpt_od = tlds.get_organizational_domain(txn.rcpt_to[i].host);
-    if (txn.rcpt_to[i].host !== rcpt_od) {
-      plugin.loginfo(`rcpt: ${txn.rcpt_to[i].host} -> ${rcpt_od}`);
+  for (const element of txn.rcpt_to) {
+    if (!element.host) continue;
+    const rcpt_od = tlds.get_organizational_domain(element.host);
+    if (element.host !== rcpt_od) {
+      plugin.loginfo(`rcpt: ${element.host} -> ${rcpt_od}`);
     }
     if (rcpt_domains.indexOf(rcpt_od) === -1) {
       // not a duplicate, add to the list
@@ -247,12 +247,12 @@ exports.is_dkim_authenticated = async function (next, connection) {
   try {
     const multi = this.db.multi();
 
-    for (let i = 0; i < dkim.pass.length; i++) {
-      const dkim_od = tlds.get_organizational_domain(dkim.pass[i]);
+    for (const pas of dkim.pass) {
+      const dkim_od = tlds.get_organizational_domain(pas);
       if (dkim_od === sender_od) {
         connection.transaction.results.add(this, { sender: sender_od, auth: 'dkim' });
-        for (let j = 0; j < rcpt_ods.length; j++) {
-          multi.hGet(rcpt_ods[j], sender_od);
+        for (const rcptOd of rcpt_ods) {
+          multi.hGet(rcptOd, sender_od);
         }
       }
     }
