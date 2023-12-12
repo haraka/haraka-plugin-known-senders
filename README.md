@@ -1,5 +1,6 @@
 [![Build Status][ci-img]][ci-url]
 [![Code Climate][clim-img]][clim-url]
+
 [![NPM][npm-img]][npm-url]
 
 # haraka-plugin-known-senders
@@ -50,8 +51,8 @@ This plugin can boost the reputation of most marginally deliverable ham. Where i
 
 
 
-[ci-img]: https://travis-ci.org/haraka/haraka-plugin-known-senders.svg?branch=master
-[ci-url]: https://travis-ci.org/haraka/haraka-plugin-known-senders
+[ci-img]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml/badge.svg
+[ci-url]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders
 [npm-img]: https://nodei.co/npm/haraka-plugin-known-senders.png
