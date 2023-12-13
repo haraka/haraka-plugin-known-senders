@@ -7,7 +7,8 @@
     "cover": "npx nyc --reporter=lcov --hook-run-in-context npm run test",
     "lint": "npx eslint *.js test/*.js",
     "lintfix": "npx eslint --fix *.js test/*.js",
-    "test": "npx mocha --exit"
+    "test": "npx mocha --exit",
+    "versions": "npx dependency-version-checker check"
   },
   "repository": {
     "type": "git",
@@ -28,14 +29,14 @@
   },
   "homepage": "https://github.com/haraka/haraka-plugin-known-senders#readme",
   "devDependencies": {
-    "address-rfc2821": "*",
-    "eslint": ">=8",
+    "address-rfc2821": "^2.1.1",
+    "eslint": "^8.55.0",
     "eslint-plugin-haraka": "*",
-    "haraka-test-fixtures": "*",
-    "mocha": ">=9"
+    "haraka-test-fixtures": "^1.3.3",
+    "mocha": "^10.2.0"
   },
   "dependencies": {
-    "haraka-plugin-redis": "^2.0.3",
-    "haraka-tld": "*"
+    "haraka-plugin-redis": "^2.0.6",
+    "haraka-tld": "^1.2.0"
   }
 }
