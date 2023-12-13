@@ -2,11 +2,12 @@
 #### N.N.N - YYYY-MM-DD
 
 
-### [1.0.10] - 2023-12-12
+### [1.1.0] - 2023-12-12
 
+- feat(ignored_ods): ignore specified org domains
 - style(es6): replace for i with for...of
 - ci(publish): only when package.json modified
-- ci: test on node 18 & 20
+- ci: use shared workflows
 
 
 #### 1.0.9 - 2022-05-28
