@@ -2,6 +2,14 @@
 #### N.N.N - YYYY-MM-DD
 
 
+### [1.1.0] - 2023-12-12
+
+- feat(ignored_ods): ignore specified org domains
+- style(es6): replace for i with for...of
+- ci(publish): only when package.json modified
+- ci: use shared workflows
+
+
 #### 1.0.9 - 2022-05-28
 
 - restore a plugin = this, context demands it
@@ -51,3 +59,5 @@
 ### 1.0.2 - 2016-02-06
 
 - inherit from haraka-plugin-redis (vs redis)
+
+[1.1.0]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.1.0

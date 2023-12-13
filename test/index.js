@@ -4,16 +4,31 @@ const assert   = require('assert');
 const Address  = require('address-rfc2821').Address;
 const fixtures = require('haraka-test-fixtures');
 
+
+describe('register', function () {
+  it('registers', function () {
+    const plugin = new fixtures.plugin('index');
+    plugin.register()
+  })
+
+  it('loads the config', function () {
+    const plugin = new fixtures.plugin('index');
+    plugin.register()
+    assert.deepEqual(false, 'simerson.net' in plugin.cfg.ignored_ods)
+    assert.deepEqual(true, 'gmail.com' in plugin.cfg.ignored_ods)
+  })
+})
+
 describe('is_authenticated', function () {
 
   const plugin = new fixtures.plugin('index');
+  plugin.register();
 
-  beforeEach(function (done) {
+  beforeEach(function () {
     this.connection = fixtures.connection.createConnection();
     this.connection.results = new fixtures.result_store(this.connection);
     this.connection.transaction = fixtures.transaction.createTransaction();
     this.connection.transaction.results = new fixtures.result_store(this.connection);
-    done();
   })
 
   it('returns empty when no auth found', function (done) {
@@ -88,12 +103,9 @@ describe('is_authenticated', function () {
 describe('check_recipient', function () {
   let connection;
 
-  beforeEach(function (done) {
+  beforeEach(function () {
     connection = fixtures.connection.createConnection();
-    // connection.relaying = true;
     connection.transaction = fixtures.transaction.createTransaction();
-    connection.transaction.results = new fixtures.result_store(connection);
-    done();
   })
 
   it('reduces domain to OD', function (done) {
@@ -119,15 +131,12 @@ describe('update_sender', function () {
 
     this.plugin = new fixtures.plugin('index');
     this.plugin.inherits('haraka-plugin-redis');
-    this.plugin.load_redis_ini()
-    this.plugin.init_redis_plugin(() => {
-      done()
-    })
+    this.plugin.load_sender_ini();
+    this.plugin.init_redis_plugin(done);
   })
 
-  after(function (done) {
+  after(function () {
     this.plugin.shutdown();
-    done()
   })
 
   it('gets the sender domain', function (done) {
@@ -168,81 +177,63 @@ describe('update_sender', function () {
 })
 
 describe('get_rcpt_ods', function () {
-  it('always returns an array', function (done) {
-    done();
+  it('always returns an array', function () {
   });
 })
 
 describe('get_sender_domain_by_txn', function () {
 
-  beforeEach(function (done) {
+  beforeEach(function () {
     this.plugin = new fixtures.plugin('known-senders');
     this.connection = new fixtures.connection.createConnection();
     this.connection.transaction = new fixtures.transaction.createTransaction();
-    this.connection.transaction.results = new fixtures.result_store(this.connection);
-    done();
   });
 
-  it('returns a sender domain: example.com', function (done) {
-    const plugin = this.plugin;
+  it('returns a sender domain: example.com', function () {
     this.connection.transaction.mail_from = new Address('<user@mail.example.com>');
-    assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
-    done();
+    assert.equal(this.plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
   });
 
-  it('returns a sender domain: mail.example.com', function (done) {
-    const plugin = this.plugin;
+  it('returns a sender domain: mail.example.com', function () {
     this.connection.transaction.mail_from = new Address('<user@mail.example.com>');
-    assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
-    done();
+    assert.equal(this.plugin.get_sender_domain_by_txn(this.connection.transaction), 'example.com');
   });
 
-  it('returns a sender domain: bbc.co.uk', function (done) {
-    const plugin = this.plugin;
+  it('returns a sender domain: bbc.co.uk', function () {
     this.connection.transaction.mail_from = new Address('<user@anything.bbc.co.uk>');
-    assert.equal(plugin.get_sender_domain_by_txn(this.connection.transaction), 'bbc.co.uk');
-    done();
+    assert.equal(this.plugin.get_sender_domain_by_txn(this.connection.transaction), 'bbc.co.uk');
   });
 })
 
 describe('get_recipient_domains_by_txn', function () {
 
-  beforeEach(function (done) {
+  beforeEach(function () {
     this.plugin = new fixtures.plugin('known-senders');
-
     this.connection = new fixtures.connection.createConnection();
     this.connection.transaction = new fixtures.transaction.createTransaction();
-    this.connection.transaction.results = new fixtures.result_store(this.connection);
-    done();
   });
 
-  it('retrieves domains from txn recipients: example.com', function (done) {
-    const plugin = this.plugin;
+  it('retrieves domains from txn recipients: example.com', function () {
     const txn = this.connection.transaction;
     txn.rcpt_to.push(new Address('<user@example.com>'));
-    const rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    const rcpt_doms = this.plugin.get_recipient_domains_by_txn(txn);
     assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms);
-    done();
   });
 
-  it('retrieves domains from txn recipients: example[1-2].com', function (done) {
-    const plugin = this.plugin;
+  it('retrieves domains from txn recipients: example[1-2].com', function () {
     const txn = this.connection.transaction;
     txn.rcpt_to.push(new Address('<user@example1.com>'));
     txn.rcpt_to.push(new Address('<user@example2.com>'));
-    const rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    const rcpt_doms = this.plugin.get_recipient_domains_by_txn(txn);
     assert.deepEqual(rcpt_doms, ['example1.com', 'example2.com'], rcpt_doms);
-    done();
   });
 
-  it('retrieves unique domains from txn recipients: example.com', function (done) {
-    const plugin = this.plugin;
+  it('retrieves unique domains from txn recipients: example.com', function () {
     const txn = this.connection.transaction;
     txn.rcpt_to.push(new Address('<user1@example.com>'));
     txn.rcpt_to.push(new Address('<user2@example.com>'));
-    const rcpt_doms = plugin.get_recipient_domains_by_txn(txn);
+    const rcpt_doms = this.plugin.get_recipient_domains_by_txn(txn);
     assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms);
-    done();
   });
 })
 
@@ -252,20 +243,14 @@ describe('is_dkim_authenticated', function () {
 
     this.connection = new fixtures.connection.createConnection();
     this.connection.transaction = new fixtures.transaction.createTransaction();
-    this.connection.transaction.results = new fixtures.result_store(this.connection);
 
     this.plugin = new fixtures.plugin('known-senders');
-
-    this.plugin.inherits('haraka-plugin-redis');
-    this.plugin.load_redis_ini()
-    this.plugin.init_redis_plugin(() => {
-      done()
-    })
+    this.plugin.register();
+    this.plugin.init_redis_plugin(done)
   })
 
-  after(function (done) {
+  after(function () {
     this.plugin.shutdown();
-    done()
   })
 
   it('finds dkim results', function (done) {
