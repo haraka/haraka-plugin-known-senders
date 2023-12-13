@@ -58,7 +58,7 @@ exports.update_sender = async function (next, connection, params) {
 
   sender_od = this.get_sender_domain_by_txn(txn);
   if (!sender_od) return errNext('no sender domain');
-  if (sender_od in plugin.cfg.ignored_ods) return errNext(`ignored(${sender_id})`);
+  if (sender_od in plugin.cfg.ignored_ods) return errNext(`ignored(${sender_od})`);
 
   rcpt_domains = this.get_recipient_domains_by_txn(txn);
   if (rcpt_domains.length === 0) {
@@ -199,7 +199,7 @@ exports.check_recipient = async function (next, connection, rcpt) {
   // if no validated sender domain, there's nothing to do...yet
   const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return next();
-  if (sender_od in this.cfg.ignored_ods) return errNext(`ignored(${sender_id})`)
+  if (sender_od in this.cfg.ignored_ods) return errNext(`ignored(${sender_od})`)
 
   // The sender OD is validated, check Redis for a match
   try {
@@ -235,7 +235,7 @@ exports.is_dkim_authenticated = async function (next, connection) {
 
   const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return errNext('no sender_od');
-  if (sender_od in this.cfg.ignored_ods) return infoNext(`ignored(${sender_id})`)
+  if (sender_od in this.cfg.ignored_ods) return infoNext(`ignored(${sender_od})`)
 
   rcpt_ods = this.get_rcpt_ods(connection);
   if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
