@@ -59,4 +59,5 @@
 ### 1.0.2 - 2016-02-06
 
 - inherit from haraka-plugin-redis (vs redis)
-[1.0.10]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.0.10
+
+[1.1.0]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.1.0
