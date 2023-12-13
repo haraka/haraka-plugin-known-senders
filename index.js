@@ -23,6 +23,8 @@ exports.load_sender_ini = function () {
     plugin.load_sender_ini();
   });
 
+  if (plugin.cfg.ignored_ods === undefined) plugin.cfg.ignored_ods = {}
+
   plugin.merge_redis_ini();
 }
 
@@ -36,6 +38,7 @@ exports.load_sender_ini = function () {
 */
 
 exports.update_sender = async function (next, connection, params) {
+  const plugin = this;
   // queue_ok arguments: next, connection, msg
   // ok 1390590369 qp 634 (F82E2DD5-9238-41DC-BC95-9C3A02716AD2.1)
 
@@ -43,7 +46,7 @@ exports.update_sender = async function (next, connection, params) {
   let rcpt_domains;
 
   function errNext (err) {
-    connection.logerror(this, `update_sender: ${err}`);
+    connection.logerror(plugin, `update_sender: ${err}`);
     next(null, null, sender_od, rcpt_domains);
   }
 
@@ -55,6 +58,7 @@ exports.update_sender = async function (next, connection, params) {
 
   sender_od = this.get_sender_domain_by_txn(txn);
   if (!sender_od) return errNext('no sender domain');
+  if (sender_od in plugin.cfg.ignored_ods) return errNext(`ignored(${sender_id})`);
 
   rcpt_domains = this.get_recipient_domains_by_txn(txn);
   if (rcpt_domains.length === 0) {
@@ -82,13 +86,10 @@ exports.update_sender = async function (next, connection, params) {
 }
 
 exports.get_sender_domain_by_txn = function (txn) {
-  const plugin = this;
-
-  if (!txn.mail_from) return;
-  if (!txn.mail_from.host) return;
+  if (!txn.mail_from || !txn.mail_from.host) return;
   const sender_od = tlds.get_organizational_domain(txn.mail_from.host);
   if (txn.mail_from.host !== sender_od) {
-    plugin.logdebug(`sender: ${txn.mail_from.host} -> ${sender_od}`);
+    this.logdebug(`sender: ${txn.mail_from.host} -> ${sender_od}`);
   }
   return sender_od;
 }
@@ -125,19 +126,19 @@ exports.get_recipient_domains_by_txn = function (txn) {
 
 // early checks, on the mail hook
 exports.is_authenticated = function (next, connection, params) {
-  const plugin = this;
 
   // only validate inbound messages
   if (connection.relaying) return next();
 
-  const sender_od = plugin.get_sender_domain_by_txn(connection.transaction);
+  const sender_od = this.get_sender_domain_by_txn(connection.transaction);
+  if (sender_od in this.cfg.ignored_ods) return next()
 
-  if (plugin.has_fcrdns_match(sender_od, connection)) {
-    connection.logdebug(plugin, `+fcrdns: ${sender_od}`);
+  if (this.has_fcrdns_match(sender_od, connection)) {
+    connection.logdebug(this, `+fcrdns: ${sender_od}`);
     return next(null, null, sender_od);
   }
-  if (plugin.has_spf_match(sender_od, connection)) {
-    connection.logdebug(plugin, `+spf: ${sender_od}`);
+  if (this.has_spf_match(sender_od, connection)) {
+    connection.logdebug(this, `+spf: ${sender_od}`);
     return next(null, null, sender_od);
   }
 
@@ -145,28 +146,25 @@ exports.is_authenticated = function (next, connection, params) {
   if (connection.tls.verified) {
     // TODO: get the CN and Subject Alternative Names of the cert
     // then look for match with sender_od
-    connection.logdebug(plugin, `+tls: ${sender_od}`);
+    connection.logdebug(this, `+tls: ${sender_od}`);
     // return next(null, null, sender_od);
   }
 
-  return next();
+  next();
 }
 
 exports.get_validated_sender_od = function (connection) {
-  const plugin = this;
-  if (!connection) return;
-  if (!connection.transaction) return;
-  const txn_res = connection.transaction.results.get(plugin.name);
+  if (!connection || !connection.transaction) return;
+  const txn_res = connection.transaction.results.get(this.name);
   if (!txn_res) return;
   return txn_res.sender;
 }
 
 exports.get_rcpt_ods = function (connection) {
-  const plugin = this;
   if (!connection) return [];
   if (!connection.transaction) return [];
 
-  const txn_r = connection.transaction.results.get(plugin.name);
+  const txn_r = connection.transaction.results.get(this.name);
   if (!txn_r) return [];
 
   return txn_r.rcpt_ods;
@@ -201,6 +199,7 @@ exports.check_recipient = async function (next, connection, rcpt) {
   // if no validated sender domain, there's nothing to do...yet
   const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return next();
+  if (sender_od in this.cfg.ignored_ods) return errNext(`ignored(${sender_id})`)
 
   // The sender OD is validated, check Redis for a match
   try {
@@ -236,6 +235,7 @@ exports.is_dkim_authenticated = async function (next, connection) {
 
   const sender_od = this.get_validated_sender_od(connection);
   if (!sender_od) return errNext('no sender_od');
+  if (sender_od in this.cfg.ignored_ods) return infoNext(`ignored(${sender_id})`)
 
   rcpt_ods = this.get_rcpt_ods(connection);
   if (!rcpt_ods || ! rcpt_ods.length) return errNext('no rcpt_ods');
