@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.1.1] - 2025-01-22
 
--
+- deps: bump all to latest
 - style: automated code formatting with prettier
 - populate [files] in package.json
 - doc(CONTRIBUTORS): added
