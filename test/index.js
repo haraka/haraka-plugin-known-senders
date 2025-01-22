@@ -27,8 +27,7 @@ describe('is_authenticated', function () {
   beforeEach(function () {
     this.connection = fixtures.connection.createConnection();
     this.connection.results = new fixtures.result_store(this.connection);
-    this.connection.transaction = fixtures.transaction.createTransaction();
-    this.connection.transaction.results = new fixtures.result_store(this.connection);
+    this.connection.init_transaction()
   })
 
   it('returns empty when no auth found', function (done) {
@@ -105,7 +104,7 @@ describe('check_recipient', function () {
 
   beforeEach(function () {
     connection = fixtures.connection.createConnection();
-    connection.transaction = fixtures.transaction.createTransaction();
+    connection.init_transaction()
   })
 
   it('reduces domain to OD', function (done) {
@@ -127,7 +126,7 @@ describe('update_sender', function () {
   beforeEach(function (done) {
     this.connection = fixtures.connection.createConnection();
     this.connection.relaying = true;
-    this.connection.transaction = fixtures.transaction.createTransaction();
+    this.connection.init_transaction()
 
     this.plugin = new fixtures.plugin('index');
     this.plugin.inherits('haraka-plugin-redis');
@@ -186,7 +185,7 @@ describe('get_sender_domain_by_txn', function () {
   beforeEach(function () {
     this.plugin = new fixtures.plugin('known-senders');
     this.connection = new fixtures.connection.createConnection();
-    this.connection.transaction = new fixtures.transaction.createTransaction();
+    this.connection.init_transaction()
   });
 
   it('returns a sender domain: example.com', function () {
@@ -210,7 +209,7 @@ describe('get_recipient_domains_by_txn', function () {
   beforeEach(function () {
     this.plugin = new fixtures.plugin('known-senders');
     this.connection = new fixtures.connection.createConnection();
-    this.connection.transaction = new fixtures.transaction.createTransaction();
+    this.connection.init_transaction()
   });
 
   it('retrieves domains from txn recipients: example.com', function () {
@@ -242,7 +241,7 @@ describe('is_dkim_authenticated', function () {
   beforeEach(function (done) {
 
     this.connection = new fixtures.connection.createConnection();
-    this.connection.transaction = new fixtures.transaction.createTransaction();
+    this.connection.init_transaction()
 
     this.plugin = new fixtures.plugin('known-senders');
     this.plugin.register();

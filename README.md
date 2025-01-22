@@ -1,15 +1,13 @@
 [![Build Status][ci-img]][ci-url]
 [![Code Climate][clim-img]][clim-url]
 
-[![NPM][npm-img]][npm-url]
-
 # haraka-plugin-known-senders
 
 Increase the reputation of domains you exchange email with by sending them email.
 
 ## Synopsis
 
-Known Senders is based on the premise that domains users send email to are domains they also want to receive email from. By maintaining lists of domains that local users send email to, a weak but helpful form of automatic whitelisting is obtained.
+Known Senders is based on the premise that domains users send email to are domains they also want to receive email from. By maintaining lists of domains that local users send email to, a weak but helpful form of trust is obtained.
 
 ## How it works
 
@@ -30,7 +28,7 @@ Such a karma rule would look like this:
 
 Inbound messages are only checked against the known-senders list when the sender's Organizational Domain can be validated against a form of domain authentication.
 
-There has currently three authentication mechanisms that can validate that a sending host has authority to send on behalf of the [purported] sending domain:
+The current authentication mechanisms that can validate that a sending host has authority to send on behalf of the [purported] sending domain are:
 
 - FCrDNS: [Forward Confirmed reverse DNS](https://en.wikipedia.org/wiki/Forward-confirmed_reverse_DNS)
 - SPF: [Sender Policy Framework](https://en.wikipedia.org/wiki/Sender_Policy_Framework)
@@ -55,5 +53,3 @@ This plugin can boost the reputation of most marginally deliverable ham. Where i
 [ci-url]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders/badges/gpa.svg
 [clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders
-[npm-img]: https://nodei.co/npm/haraka-plugin-known-senders.png
-[npm-url]: https://www.npmjs.com/package/haraka-plugin-known-senders

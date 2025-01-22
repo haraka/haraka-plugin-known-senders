@@ -8,7 +8,11 @@
     "lint": "npx eslint *.js test/*.js",
     "lintfix": "npx eslint --fix *.js test/*.js",
     "test": "npx mocha --exit",
-    "versions": "npx dependency-version-checker check"
+    "versions": "npx dependency-version-checker check",
+    "format": "npm run prettier:fix && npm run lint:fix",
+    "prettier": "npx prettier . --check",
+    "prettier:fix": "npx prettier . --check",
+    "versions:fix": "npx dependency-version-checker update"
   },
   "repository": {
     "type": "git",
@@ -29,14 +33,13 @@
   },
   "homepage": "https://github.com/haraka/haraka-plugin-known-senders#readme",
   "devDependencies": {
-    "address-rfc2821": "^2.1.1",
-    "eslint": "^8.55.0",
-    "eslint-plugin-haraka": "^1.0.15",
-    "haraka-test-fixtures": "^1.3.3",
-    "mocha": "^10.2.0"
+    "address-rfc2821": "^2.1.2",
+    "haraka-test-fixtures": "^1.3.8",
+    "mocha": "^11.1.0",
+    "@haraka/eslint-config": "^2.0.2"
   },
   "dependencies": {
-    "haraka-plugin-redis": "^2.0.6",
-    "haraka-tld": "^1.2.0"
+    "haraka-plugin-redis": "^2.0.8",
+    "haraka-tld": "^1.2.3"
   }
 }
