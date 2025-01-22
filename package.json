@@ -1,7 +1,11 @@
 {
   "name": "haraka-plugin-known-senders",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Increase the reputation of recognized sender domains.",
+  "files": [
+    "CHANGELOG.md",
+    "config"
+  ],
   "main": "index.js",
   "scripts": {
     "cover": "npx nyc --reporter=lcov --hook-run-in-context npm run test",
