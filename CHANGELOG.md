@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### [1.1.1] - 2025-01-22
 
+- 
+- style: automated code formatting with prettier
 - populate [files] in package.json
 - doc(CONTRIBUTORS): added
 - doc: mv Changes.md CHANGELOG.md
