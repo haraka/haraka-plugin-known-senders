@@ -9,13 +9,13 @@
   "main": "index.js",
   "scripts": {
     "cover": "npx nyc --reporter=lcov --hook-run-in-context npm run test",
+    "format": "npm run prettier:fix && npm run lint:fix",
     "lint": "npx eslint *.js test/*.js",
-    "lintfix": "npx eslint --fix *.js test/*.js",
+    "lint:fix": "npx eslint --fix *.js test/*.js",
+    "prettier": "npx prettier . --check",
+    "prettier:fix": "npx prettier . --write --log-level=warn",
     "test": "npx mocha --exit",
     "versions": "npx dependency-version-checker check",
-    "format": "npm run prettier:fix && npm run lint:fix",
-    "prettier": "npx prettier . --check",
-    "prettier:fix": "npx prettier . --check",
     "versions:fix": "npx dependency-version-checker update"
   },
   "repository": {

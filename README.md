@@ -23,7 +23,6 @@ Such a karma rule would look like this:
 
 `280 = known-senders | pass      | length | gt 0    |  5  | Known Sender`
 
-
 ## Authentication
 
 Inbound messages are only checked against the known-senders list when the sender's Organizational Domain can be validated against a form of domain authentication.
@@ -34,7 +33,6 @@ The current authentication mechanisms that can validate that a sending host has 
 - SPF: [Sender Policy Framework](https://en.wikipedia.org/wiki/Sender_Policy_Framework)
 - DKIM: [DomainKeys Identified Mail](https://en.wikipedia.org/wiki/DomainKeys_Identified_Mail)
 
-
 ## Ideas for additional authentication mechanisms
 
 Mechanisms need not be 100% effective to be useful.
@@ -42,12 +40,9 @@ Mechanisms need not be 100% effective to be useful.
 - TLS certficate names
 - GeoLocation
 
-
 ## Limitations
 
 This plugin can boost the reputation of most marginally deliverable ham. Where it doesn't help is for messages coming from a Windows Exchange server (no DKIM signing support without $$$ 3rd party plugin) on a lame ISPs network that doesn't let them configure reverse DNS and whose admins haven't the clue to set up SPF properly.
-
-
 
 [ci-img]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml
