@@ -66,8 +66,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - inherit from haraka-plugin-redis (vs redis)
 
-[1.1.0]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.1.0
-[1.1.1]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.1
 [1.0.8]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.0.8
 [1.0.9]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.0.9
+[1.1.0]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.1.0
+[1.1.1]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.1
 [1.1.2]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.2
