@@ -4,6 +4,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.1.2] - 2025-01-26
+
+#### Added
+
+- 
+
+#### Fixed
+
+- 
+
+#### Changed
+
+- 
+
+
 ### [1.1.1] - 2025-01-22
 
 - deps: bump all to latest
@@ -66,3 +81,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.1]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.1
 [1.0.8]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.0.8
 [1.0.9]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/1.0.9
+[1.1.2]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.2
