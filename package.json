@@ -37,13 +37,13 @@
   },
   "homepage": "https://github.com/haraka/haraka-plugin-known-senders#readme",
   "devDependencies": {
-    "address-rfc2821": "^2.1.2",
-    "haraka-test-fixtures": "^1.3.8",
-    "@haraka/eslint-config": "^2.0.2"
+    "address-rfc2821": "^2.1.3",
+    "haraka-test-fixtures": "^1.3.10",
+    "@haraka/eslint-config": "^2.0.3"
   },
   "dependencies": {
-    "haraka-plugin-redis": "^2.0.8",
-    "haraka-tld": "^1.2.3"
+    "haraka-plugin-redis": "^2.0.11",
+    "haraka-tld": "^1.2.4"
   },
   "prettier": {
     "singleQuote": true,
