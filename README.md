@@ -44,6 +44,44 @@ Mechanisms need not be 100% effective to be useful.
 
 This plugin can boost the reputation of most marginally deliverable ham. Where it doesn't help is for messages coming from a Windows Exchange server (no DKIM signing support without $$$ 3rd party plugin) on a lame ISPs network that doesn't let them configure reverse DNS and whose admins haven't the clue to set up SPF properly.
 
+## Commonly Abused Names Protection
+
+This plugin also protects against brand impersonation by checking for commonly abused brand names in email headers and subject lines.
+
+### How it works
+
+The plugin checks the envelope from, header from, and subject line for well-known brand names that are commonly abused by spammers and phishers (like "costco", "paypal", "amazon", etc.). When these names are detected but the sending domain doesn't match the legitimate domain, the message is rejected.
+
+### Configuration
+
+Brand names are configured in the `[commonly_abused]` section of `config/known-senders.ini`:
+
+```ini
+[commonly_abused]
+costco=costco.com
+c0stc0=costco.com
+paypal=paypal.com
+amazon=amazon.com
+```
+
+The format is: `brand_name=legitimate_domain.com`
+
+Multiple variations (like "c0stc0" with zeros instead of letters) can map to the same legitimate domain.
+
+### Examples
+
+**Rejected:**
+- From: "Costco Support" \<spam@spammer.com\>
+- Subject: "Your Costco Order"
+- Result: Rejected because "costco" appears in the name/subject but the domain is not costco.com
+
+**Allowed:**
+- From: "Costco Support" \<noreply@costco.com\>
+- Subject: "Your Costco Order"
+- Result: Allowed because the domain matches costco.com
+
+The check is case-insensitive and works with both exact matches and variations.
+
 [ci-img]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml
 [clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders/badges/gpa.svg
