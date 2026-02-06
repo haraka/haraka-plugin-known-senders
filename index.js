@@ -1,7 +1,6 @@
 'use strict'
 
 const tlds = require('haraka-tld')
-const constants = require('haraka-constants')
 
 exports.register = function () {
   this.inherits('haraka-plugin-redis')
@@ -73,8 +72,7 @@ exports.update_sender = async function (next, connection, params) {
 
   sender_od = this.get_sender_domain_by_txn(txn)
   if (!sender_od) return errNext('no sender domain')
-  if (sender_od in plugin.cfg.ignored_ods)
-    return errNext(`ignored(${sender_od})`)
+  if (sender_od in plugin.cfg.ignored_ods) return errNext(`ignored(${sender_od})`)
 
   rcpt_domains = this.get_recipient_domains_by_txn(txn)
   if (rcpt_domains.length === 0) {
@@ -91,10 +89,7 @@ exports.update_sender = async function (next, connection, params) {
 
     const replies = await multi.exec()
     for (let i = 0; i < rcpt_domains.length; i++) {
-      connection.loginfo(
-        this,
-        `saved ${sender_od} : ${rcpt_domains[i]} : ${replies[i]}`,
-      )
+      connection.loginfo(this, `saved ${sender_od} : ${rcpt_domains[i]} : ${replies[i]}`)
     }
     next(null, null, sender_od, rcpt_domains)
   } catch (err) {
@@ -113,8 +108,6 @@ exports.get_sender_domain_by_txn = function (txn) {
 }
 
 exports.get_recipient_domains_by_txn = function (txn) {
-  const plugin = this
-
   const rcpt_domains = []
   if (!txn.rcpt_to) return rcpt_domains
 
@@ -122,7 +115,7 @@ exports.get_recipient_domains_by_txn = function (txn) {
     if (!element.host) continue
     const rcpt_od = tlds.get_organizational_domain(element.host)
     if (element.host !== rcpt_od) {
-      plugin.loginfo(`rcpt: ${element.host} -> ${rcpt_od}`)
+      this.loginfo(`rcpt: ${element.host} -> ${rcpt_od}`)
     }
     if (rcpt_domains.indexOf(rcpt_od) === -1) {
       // not a duplicate, add to the list
@@ -251,8 +244,7 @@ exports.is_dkim_authenticated = async function (next, connection) {
 
   const sender_od = this.get_validated_sender_od(connection)
   if (!sender_od) return errNext('no sender_od')
-  if (sender_od in this.cfg.ignored_ods)
-    return infoNext(`ignored(${sender_od})`)
+  if (sender_od in this.cfg.ignored_ods) return infoNext(`ignored(${sender_od})`)
 
   rcpt_ods = this.get_rcpt_ods(connection)
   if (!rcpt_ods || !rcpt_ods.length) return errNext('no rcpt_ods')
@@ -349,13 +341,10 @@ exports.has_spf_match = function (sender_od, connection) {
  */
 
 exports.check_abused_names = function (next, connection) {
-  const plugin = this
+  if (connection.relaying) return next() // inbound only
 
-  // Only check inbound messages
-  if (connection.relaying) return next()
-
-  // Skip if no commonly abused names configured
-  if (!plugin.cfg.commonly_abused_patterns || Object.keys(plugin.cfg.commonly_abused_patterns).length === 0) {
+  // Skip when no commonly abused names configured
+  if (!this.cfg.commonly_abused || Object.keys(this.cfg.commonly_abused).length === 0) {
     return next()
   }
 
@@ -364,9 +353,8 @@ exports.check_abused_names = function (next, connection) {
 
   try {
     // Get envelope from domain
-    const envelope_from_domain = txn.mail_from && txn.mail_from.host
-      ? tlds.get_organizational_domain(txn.mail_from.host)
-      : null
+    const envelope_from_domain =
+      txn.mail_from && txn.mail_from.host ? tlds.get_organizational_domain(txn.mail_from.host) : null
 
     // Get header from
     const header_from = txn.header.get('from')
@@ -388,50 +376,45 @@ exports.check_abused_names = function (next, connection) {
     const subject_text = subject ? subject.toLowerCase() : ''
 
     // Get envelope from text (local part and any display name)
-    const envelope_from_text = txn.mail_from && txn.mail_from.user
-      ? txn.mail_from.user.toLowerCase()
-      : ''
+    const envelope_from_text = txn.mail_from && txn.mail_from.user ? txn.mail_from.user.toLowerCase() : ''
 
-    // Check each commonly abused name using pre-compiled patterns
-    for (const [abused_name, pattern_info] of Object.entries(plugin.cfg.commonly_abused_patterns)) {
-      const { pattern, legitimate_domain } = pattern_info
-      
-      // Check if the abused name appears in from or subject
-      const found_in_header_from = pattern.test(header_from_text)
-      const found_in_subject = pattern.test(subject_text)
-      const found_in_envelope_from = pattern.test(envelope_from_text)
+    for (const [abused_name, legitimate_domain] of Object.entries(this.cfg.commonly_abused)) {
+      const name_lower = abused_name.toLowerCase()
 
-      if (found_in_header_from || found_in_subject || found_in_envelope_from) {
+      // is the abused name in from or subject?
+      const in_header_from = header_from_text.includes(name_lower)
+      const in_subject = subject_text.includes(name_lower)
+      const in_envelope_from = envelope_from_text.includes(name_lower)
+
+      if (in_header_from || in_subject || in_envelope_from) {
         // Get the legitimate OD for comparison
         const legitimate_od = tlds.get_organizational_domain(legitimate_domain)
-        
-        // Check if the actual sending domains match the legitimate domain
+
+        // Check if the sending domains matches the legitimate domain
         const envelope_matches = envelope_from_domain === legitimate_od
         const header_matches = header_from_domain === legitimate_od
 
         if (!envelope_matches && !header_matches) {
           // The abused name was found but neither domain matches - REJECT
           const locations = []
-          if (found_in_envelope_from) locations.push('envelope from')
-          if (found_in_header_from) locations.push('header from')
-          if (found_in_subject) locations.push('subject')
-          
-          connection.loginfo(plugin, 
-            `rejecting: abused name '${abused_name}' found in ${locations.join(', ')} ` +
-            `but domain is not ${legitimate_domain} ` +
-            `(envelope: ${envelope_from_domain || 'none'}, header: ${header_from_domain || 'none'})`
+          if (in_envelope_from) locations.push('envelope from')
+          if (in_header_from) locations.push('header from')
+          if (in_subject) locations.push('subject')
+
+          connection.loginfo(
+            this,
+            `'${abused_name}' found in ${locations.join(', ')}, domain is not ${legitimate_domain} ` +
+              `(envelope: ${envelope_from_domain || 'none'}, header: ${header_from_domain || 'none'})`,
           )
-          
-          return next(constants.DENY, 
-            `This message appears to impersonate ${legitimate_domain} and has been rejected`
-          )
+
+          return next(DENY, `This message appears to impersonate ${legitimate_domain}`)
         }
       }
     }
 
     next()
   } catch (err) {
-    connection.logerror(plugin, `check_abused_names error: ${err}`)
+    connection.logerror(this, `check_abused_names error: ${err}`)
     next()
   }
 }

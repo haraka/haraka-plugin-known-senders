@@ -5,9 +5,11 @@
 
 Increase the reputation of domains you exchange email with by sending them email.
 
+Reduce the reputation of emails purporting to be from well-known entities that bear no common forms of domain authentication.
+
 ## Synopsis
 
-Known Senders is based on the premise that domains users send email to are domains they also want to receive email from. By maintaining lists of domains that local users send email to, a weak but helpful form of trust is obtained.
+Known Senders is based on the premise that domains users send email to are domains they also want to receive email from. By maintaining lists of domains that local users send email to, a basis of trust is obtained.
 
 ## How it works
 
@@ -71,11 +73,13 @@ Multiple variations (like "c0stc0" with zeros instead of letters) can map to the
 ### Examples
 
 **Rejected:**
+
 - From: "Costco Support" \<spam@spammer.com\>
 - Subject: "Your Costco Order"
 - Result: Rejected because "costco" appears in the name/subject but the domain is not costco.com
 
 **Allowed:**
+
 - From: "Costco Support" \<noreply@costco.com\>
 - Subject: "Your Costco Order"
 - Result: Allowed because the domain matches costco.com

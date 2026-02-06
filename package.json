@@ -14,7 +14,7 @@
     "lint:fix": "npx eslint --fix *.js test/*.js",
     "prettier": "npx prettier . --check",
     "prettier:fix": "npx prettier . --write --log-level=warn",
-    "test": "npx mocha@^11 --exit",
+    "test": "npx mocha --exit",
     "versions": "npx dependency-version-checker check",
     "versions:fix": "npx dependency-version-checker update"
   },
@@ -46,6 +46,7 @@
     "haraka-tld": "^1.2.4"
   },
   "prettier": {
+    "printWidth": 120,
     "singleQuote": true,
     "semi": false
   }
