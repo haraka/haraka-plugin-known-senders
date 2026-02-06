@@ -316,8 +316,8 @@ describe('check_abused_names', function () {
   })
 
   it('allows messages when no commonly abused names configured', function (done) {
-    // Clear the commonly_abused config
-    plugin.cfg.commonly_abused = {}
+    // Clear the commonly_abused patterns
+    plugin.cfg.commonly_abused_patterns = {}
     
     const header_from = 'Costco Support <spam@spammer.com>'
     connection.transaction.header.add('From', header_from)

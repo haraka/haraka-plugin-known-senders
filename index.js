@@ -28,6 +28,18 @@ exports.load_sender_ini = function () {
   if (plugin.cfg.ignored_ods === undefined) plugin.cfg.ignored_ods = {}
   if (plugin.cfg.commonly_abused === undefined) plugin.cfg.commonly_abused = {}
 
+  // Pre-compile regex patterns for commonly abused names
+  plugin.cfg.commonly_abused_patterns = {}
+  for (const [abused_name, legitimate_domain] of Object.entries(plugin.cfg.commonly_abused)) {
+    const name_lower = abused_name.toLowerCase()
+    // Use word boundaries to avoid false positives
+    const escaped_name = name_lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    plugin.cfg.commonly_abused_patterns[abused_name] = {
+      pattern: new RegExp(`\\b${escaped_name}\\b`, 'i'),
+      legitimate_domain: legitimate_domain
+    }
+  }
+
   plugin.merge_redis_ini()
 }
 
@@ -343,7 +355,7 @@ exports.check_abused_names = function (next, connection) {
   if (connection.relaying) return next()
 
   // Skip if no commonly abused names configured
-  if (!plugin.cfg.commonly_abused || Object.keys(plugin.cfg.commonly_abused).length === 0) {
+  if (!plugin.cfg.commonly_abused_patterns || Object.keys(plugin.cfg.commonly_abused_patterns).length === 0) {
     return next()
   }
 
@@ -380,18 +392,14 @@ exports.check_abused_names = function (next, connection) {
       ? txn.mail_from.user.toLowerCase()
       : ''
 
-    // Check each commonly abused name
-    for (const [abused_name, legitimate_domain] of Object.entries(plugin.cfg.commonly_abused)) {
-      const name_lower = abused_name.toLowerCase()
-      
-      // Use word boundaries to avoid false positives
-      // Match as a separate word, not just substring
-      const word_pattern = new RegExp(`\\b${name_lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+    // Check each commonly abused name using pre-compiled patterns
+    for (const [abused_name, pattern_info] of Object.entries(plugin.cfg.commonly_abused_patterns)) {
+      const { pattern, legitimate_domain } = pattern_info
       
       // Check if the abused name appears in from or subject
-      const found_in_header_from = word_pattern.test(header_from_text)
-      const found_in_subject = word_pattern.test(subject_text)
-      const found_in_envelope_from = word_pattern.test(envelope_from_text)
+      const found_in_header_from = pattern.test(header_from_text)
+      const found_in_subject = pattern.test(subject_text)
+      const found_in_envelope_from = pattern.test(envelope_from_text)
 
       if (found_in_header_from || found_in_subject || found_in_envelope_from) {
         // Get the legitimate OD for comparison
