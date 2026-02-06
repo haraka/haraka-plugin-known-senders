@@ -363,8 +363,9 @@ exports.check_abused_names = function (next, connection) {
 
     if (header_from) {
       header_from_text = header_from.toLowerCase()
-      // Extract domain from header From (simple regex to get domain from email address)
-      const domain_match = header_from.match(/@([^\s>]+)/i)
+      // Extract domain from header From - look for last @ followed by domain
+      // This handles most common formats including quoted names
+      const domain_match = header_from.match(/@([a-zA-Z0-9.-]+)(?:[>\s]|$)/i)
       if (domain_match && domain_match[1]) {
         header_from_domain = tlds.get_organizational_domain(domain_match[1])
       }
@@ -383,10 +384,14 @@ exports.check_abused_names = function (next, connection) {
     for (const [abused_name, legitimate_domain] of Object.entries(plugin.cfg.commonly_abused)) {
       const name_lower = abused_name.toLowerCase()
       
+      // Use word boundaries to avoid false positives
+      // Match as a separate word, not just substring
+      const word_pattern = new RegExp(`\\b${name_lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+      
       // Check if the abused name appears in from or subject
-      const found_in_header_from = header_from_text.includes(name_lower)
-      const found_in_subject = subject_text.includes(name_lower)
-      const found_in_envelope_from = envelope_from_text.includes(name_lower)
+      const found_in_header_from = word_pattern.test(header_from_text)
+      const found_in_subject = word_pattern.test(subject_text)
+      const found_in_envelope_from = word_pattern.test(envelope_from_text)
 
       if (found_in_header_from || found_in_subject || found_in_envelope_from) {
         // Get the legitimate OD for comparison

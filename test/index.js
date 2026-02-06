@@ -307,6 +307,14 @@ describe('check_abused_names', function () {
     plugin.register()
   })
 
+  it('loads commonly abused names from config file', function () {
+    // Verify that the config is loaded with expected entries
+    assert.ok(plugin.cfg.commonly_abused)
+    assert.equal(plugin.cfg.commonly_abused.costco, 'costco.com')
+    assert.equal(plugin.cfg.commonly_abused.c0stc0, 'costco.com')
+    assert.equal(plugin.cfg.commonly_abused.paypal, 'paypal.com')
+  })
+
   it('allows messages when no commonly abused names configured', function (done) {
     // Clear the commonly_abused config
     plugin.cfg.commonly_abused = {}
@@ -457,6 +465,46 @@ describe('check_abused_names', function () {
     plugin.check_abused_names(function (code, msg) {
       assert.equal(code, constants.DENY)
       assert.ok(msg.includes('paypal.com'))
+      done()
+    }, connection)
+  })
+
+  it('avoids false positives with substring matches', function (done) {
+    // "purchase" contains "chase" but should not be flagged
+    const header_from = 'John Doe <john@example.com>'
+    connection.transaction.header.add('From', header_from)
+    connection.transaction.header.add('Subject', 'Thank you for your purchase')
+    connection.transaction.mail_from = new Address('<john@example.com>')
+
+    plugin.check_abused_names(function (code) {
+      assert.equal(code, undefined)
+      done()
+    }, connection)
+  })
+
+  it('avoids false positives with domain names', function (done) {
+    // "tamazon.com" contains "amazon" but should not be flagged in domain
+    const header_from = 'Support <support@tamazon.com>'
+    connection.transaction.header.add('From', header_from)
+    connection.transaction.header.add('Subject', 'Your order update')
+    connection.transaction.mail_from = new Address('<support@tamazon.com>')
+
+    plugin.check_abused_names(function (code) {
+      assert.equal(code, undefined)
+      done()
+    }, connection)
+  })
+
+  it('handles complex email address formats', function (done) {
+    // Test with quoted display name
+    const header_from = '"Costco Support Team" <spam@spammer.com>'
+    connection.transaction.header.add('From', header_from)
+    connection.transaction.header.add('Subject', 'Order notification')
+    connection.transaction.mail_from = new Address('<spam@spammer.com>')
+
+    plugin.check_abused_names(function (code, msg) {
+      assert.equal(code, constants.DENY)
+      assert.ok(msg.includes('costco.com'))
       done()
     }, connection)
   })
