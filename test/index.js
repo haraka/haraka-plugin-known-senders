@@ -298,6 +298,7 @@ describe('is_dkim_authenticated', function () {
 describe('check_abused_names', function () {
   let plugin
   let connection
+  let original_patterns
 
   beforeEach(function () {
     connection = fixtures.connection.createConnection()
@@ -305,6 +306,16 @@ describe('check_abused_names', function () {
 
     plugin = new fixtures.plugin('index')
     plugin.register()
+    
+    // Save original patterns for restoration
+    original_patterns = plugin.cfg.commonly_abused_patterns
+  })
+
+  afterEach(function () {
+    // Restore original patterns to avoid test pollution
+    if (original_patterns) {
+      plugin.cfg.commonly_abused_patterns = original_patterns
+    }
   })
 
   it('loads commonly abused names from config file', function () {
@@ -316,7 +327,7 @@ describe('check_abused_names', function () {
   })
 
   it('allows messages when no commonly abused names configured', function (done) {
-    // Clear the commonly_abused patterns
+    // Temporarily clear the commonly_abused patterns for this test
     plugin.cfg.commonly_abused_patterns = {}
     
     const header_from = 'Costco Support <spam@spammer.com>'

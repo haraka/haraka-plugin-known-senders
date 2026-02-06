@@ -33,7 +33,7 @@ exports.load_sender_ini = function () {
   for (const [abused_name, legitimate_domain] of Object.entries(plugin.cfg.commonly_abused)) {
     const name_lower = abused_name.toLowerCase()
     // Use word boundaries to avoid false positives
-    const escaped_name = name_lower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const escaped_name = name_lower.replace(/[.*+?^${}()|[\\\]]/g, '\\$&')
     plugin.cfg.commonly_abused_patterns[abused_name] = {
       pattern: new RegExp(`\\b${escaped_name}\\b`, 'i'),
       legitimate_domain: legitimate_domain
@@ -376,8 +376,8 @@ exports.check_abused_names = function (next, connection) {
     if (header_from) {
       header_from_text = header_from.toLowerCase()
       // Extract domain from header From - look for last @ followed by domain
-      // This handles most common formats including quoted names
-      const domain_match = header_from.match(/@([a-zA-Z0-9.-]+)(?:[>\s]|$)/i)
+      // RFC-compliant domain pattern: hyphens only in the middle of labels
+      const domain_match = header_from.match(/@([a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*)(?:[>\s]|$)/i)
       if (domain_match && domain_match[1]) {
         header_from_domain = tlds.get_organizational_domain(domain_match[1])
       }
