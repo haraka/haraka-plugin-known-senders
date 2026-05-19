@@ -4,9 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
-### [1.2.0] - 2026-05-17
+### [1.1.4] - 2026-05-18
 
-- dep: address-rfc2821 -> @haraka/email-address
+- fix: updated dkim plugin name
+- fix: DKIM can now be standalone auth
 - test: runner is now node:test
 - test: coverage is now also node:test
 
@@ -82,4 +83,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.1]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.1
 [1.1.2]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.2
 [1.1.3]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.3
-[1.2.0]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.2.0
+[1.1.4]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.4

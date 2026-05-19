@@ -1,7 +1,7 @@
 const assert = require('node:assert')
 const { describe, it, after, before, beforeEach } = require('node:test')
 
-const { Address } = require('@haraka/email-address')
+const Address = require('address-rfc2821').Address
 const fixtures = require('haraka-test-fixtures')
 const tlds = require('haraka-tld')
 
@@ -302,17 +302,67 @@ describe('is_dkim_authenticated', () => {
     plugin.shutdown()
   })
 
-  it('finds dkim results', async () => {
+  it('finds dkim results (with prior FCrDNS/SPF sender)', async () => {
     const txn = connection.transaction
 
     txn.results.add(plugin, { sender: 'sender.com' })
     txn.results.push(plugin, { rcpt_ods: 'rcpt.com' })
-    txn.results.add({ name: 'dkim_verify' }, { pass: 'sender.com' })
+    txn.results.add({ name: 'dkim' }, { pass: ['sender.com'] })
 
     await new Promise((resolve) => {
       plugin.is_dkim_authenticated(() => {
         const res = txn.results.get(plugin.name)
         assert.equal('dkim', res.auth)
+        resolve()
+      }, connection)
+    }, connection)
+  })
+
+  it('authenticates via DKIM alone (no prior FCrDNS/SPF)', async () => {
+    const { Address } = require('@haraka/email-address')
+    const txn = connection.transaction
+
+    txn.mail_from = new Address('<user@sender.com>')
+    txn.results.push(plugin, { rcpt_ods: 'rcpt.com' })
+    txn.results.add({ name: 'dkim' }, { pass: ['sender.com'] })
+
+    await new Promise((resolve) => {
+      plugin.is_dkim_authenticated(() => {
+        const res = txn.results.get(plugin.name)
+        assert.equal('dkim', res.auth)
+        resolve()
+      }, connection)
+    }, connection)
+  })
+
+  it('skips if no dkim results present', async () => {
+    const { Address } = require('@haraka/email-address')
+    const txn = connection.transaction
+
+    txn.mail_from = new Address('<user@sender.com>')
+    txn.results.push(plugin, { rcpt_ods: 'rcpt.com' })
+
+    await new Promise((resolve) => {
+      plugin.is_dkim_authenticated(() => {
+        const res = txn.results.get(plugin.name)
+        assert.ok(!res || !res.auth)
+        resolve()
+      }, connection)
+    }, connection)
+  })
+
+  it('skips if dkim pass domain does not match sender_od', async () => {
+    const { Address } = require('@haraka/email-address')
+    const txn = connection.transaction
+
+    txn.mail_from = new Address('<user@sender.com>')
+    txn.results.push(plugin, { rcpt_ods: 'rcpt.com' })
+    txn.results.add({ name: 'dkim' }, { pass: ['other.com'] })
+
+    await new Promise((resolve) => {
+      plugin.is_dkim_authenticated(() => {
+        const res = txn.results.get(plugin.name)
+        assert.ok(!res || !res.auth)
         resolve()
       }, connection)
     }, connection)

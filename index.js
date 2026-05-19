@@ -185,7 +185,7 @@ exports.check_recipient = async function (next, connection, rcpt) {
   // inbound only
   if (connection.relaying) return next()
 
-  function errNext(err) {
+  const errNext = (err) => {
     connection.logerror(this, `check_recipient: ${err}`)
     next()
   }
@@ -234,24 +234,31 @@ exports.is_dkim_authenticated = async function (next, connection) {
 
   if (this.already_matched(connection)) return infoNext('already matched')
 
-  const sender_od = this.get_validated_sender_od(connection)
-  if (!sender_od) return errNext('no sender_od')
+  // Use validated sender OD if FCrDNS/SPF already ran; otherwise fall back
+  // to the raw MAIL FROM domain so DKIM can serve as standalone auth.
+  let sender_od = this.get_validated_sender_od(connection)
+  if (!sender_od) {
+    sender_od = this.get_sender_domain_by_txn(connection.transaction)
+    if (!sender_od) return errNext('no sender_od')
+  }
   if (sender_od in this.cfg.ignored_ods)
     return infoNext(`ignored(${sender_od})`)
 
   rcpt_ods = this.get_rcpt_ods(connection)
   if (!rcpt_ods || !rcpt_ods.length) return errNext('no rcpt_ods')
 
-  const dkim = connection.transaction.results.get('dkim_verify')
-  if (!dkim) return infoNext('no dkim_verify results')
+  const dkim = connection.transaction.results.get('dkim')
+  if (!dkim) return infoNext('no dkim results')
   if (!dkim.pass || !dkim.pass.length) return infoNext('no dkim pass')
 
   try {
     const multi = this.db.multi()
+    let dkim_matched = false
 
     for (const pas of dkim.pass) {
       const dkim_od = tlds.get_organizational_domain(pas)
       if (dkim_od === sender_od) {
+        dkim_matched = true
         connection.transaction.results.add(this, {
           sender: sender_od,
           auth: 'dkim',
@@ -259,8 +266,11 @@ exports.is_dkim_authenticated = async function (next, connection) {
         for (const rcptOd of rcpt_ods) {
           multi.hGet(rcptOd, sender_od)
         }
+        break // one matching DKIM signature is enough
       }
     }
+
+    if (!dkim_matched) return infoNext('no dkim pass matching sender_od')
 
     const replies = await multi.exec()
     for (let j = 0; j < rcpt_ods.length; j++) {
@@ -311,7 +321,7 @@ exports.has_spf_match = function (sender_od, connection) {
 
   spf = connection.transaction.results.get('spf')
   if (spf && spf.domain && spf.result === 'Pass') {
-    // scope=mfrom (HELO/EHLO)
+    // scope=mfrom (MAIL FROM)
     if (tlds.get_organizational_domain(spf.domain) === sender_od) {
       connection.transaction.results.add(this, {
         sender: sender_od,
