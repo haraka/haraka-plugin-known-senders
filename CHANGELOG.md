@@ -4,6 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.1.4] - 2026-05-18
+
+- fix: updated dkim plugin name
+- fix: DKIM can now be standalone auth
+- test: runner is now node:test
+- test: coverage is now also node:test
+
 ### [1.1.3] - 2025-11-15
 
 - deps: dump all versions to latest
@@ -76,3 +83,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.1]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.1
 [1.1.2]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.2
 [1.1.3]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.3
+[1.1.4]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.4
