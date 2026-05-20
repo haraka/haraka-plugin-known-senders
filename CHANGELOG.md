@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ### Unreleased
 
+### [1.1.5] - 2026-05-20
+
+- fix: guard against null domains
+
 ### [1.1.4] - 2026-05-18
 
 - fix: updated dkim plugin name
@@ -84,3 +88,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 [1.1.2]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.2
 [1.1.3]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.3
 [1.1.4]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.4
+[1.1.5]: https://github.com/haraka/haraka-plugin-known-senders/releases/tag/v1.1.5

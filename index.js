@@ -106,6 +106,7 @@ exports.get_recipient_domains_by_txn = function (txn) {
   for (const element of txn.rcpt_to) {
     if (!element.host) continue
     const rcpt_od = tlds.get_organizational_domain(element.host)
+    if (!rcpt_od) continue
     if (element.host !== rcpt_od) {
       plugin.loginfo(`rcpt: ${element.host} -> ${rcpt_od}`)
     }
@@ -133,6 +134,7 @@ exports.is_authenticated = function (next, connection, params) {
   if (connection.relaying) return next()
 
   const sender_od = this.get_sender_domain_by_txn(connection.transaction)
+  if (!sender_od) return next()
   if (sender_od in this.cfg.ignored_ods) return next()
 
   if (this.has_fcrdns_match(sender_od, connection)) {
@@ -289,6 +291,7 @@ exports.is_dkim_authenticated = async function (next, connection) {
 }
 
 exports.has_fcrdns_match = function (sender_od, connection) {
+  if (!sender_od) return false
   const fcrdns = connection.results.get('fcrdns')
   if (!fcrdns) return false
   if (!fcrdns.fcrdns) return false
@@ -310,6 +313,7 @@ exports.has_fcrdns_match = function (sender_od, connection) {
 }
 
 exports.has_spf_match = function (sender_od, connection) {
+  if (!sender_od) return false
   let spf = connection.results.get('spf')
   if (spf && spf.domain && spf.result === 'Pass') {
     // scope=helo (HELO/EHLO)
