@@ -125,6 +125,38 @@ describe('is_authenticated', () => {
       }, connection)
     }, connection)
   })
+
+  it('does not match when sender host has no public suffix (FCrDNS)', async () => {
+    // both MAIL FROM host and fcrdns host reduce to null via haraka-tld.
+    // Without guards, `null === null` produces a false-positive match
+    // and `sender: null` is stored in transaction results.
+    connection.transaction.mail_from = new Address('<johndoe@localhost>')
+    connection.results.add({ name: 'fcrdns' }, { fcrdns: 'localhost' })
+    await new Promise((resolve) => {
+      plugin.is_authenticated((null1, null2, sender_od) => {
+        assert.strictEqual(sender_od, undefined)
+        const res = connection.transaction.results.get(plugin.name)
+        assert.strictEqual(res?.sender, undefined)
+        resolve()
+      }, connection)
+    }, connection)
+  })
+
+  it('does not match when sender host has no public suffix (SPF)', async () => {
+    connection.transaction.mail_from = new Address('<johndoe@localhost>')
+    connection.transaction.results.add(
+      { name: 'spf' },
+      { scope: 'mfrom', result: 'Pass', domain: 'localhost' },
+    )
+    await new Promise((resolve) => {
+      plugin.is_authenticated((null1, null2, sender_od) => {
+        assert.strictEqual(sender_od, undefined)
+        const res = connection.transaction.results.get(plugin.name)
+        assert.strictEqual(res?.sender, undefined)
+        resolve()
+      }, connection)
+    }, connection)
+  })
 })
 
 describe('check_recipient', () => {
@@ -282,6 +314,17 @@ describe('get_recipient_domains_by_txn', () => {
     const rcpt_doms = plugin.get_recipient_domains_by_txn(txn)
     assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms)
   })
+
+  it('skips recipients whose host has no organizational domain', () => {
+    // hosts without a recognised public suffix (IP literals, localhost,
+    // bare names) make haraka-tld return null. Those must not leak into
+    // the returned array, or downstream Redis calls fail (issue #41).
+    const txn = connection.transaction
+    txn.rcpt_to.push(new Address('<user@localhost>'))
+    txn.rcpt_to.push(new Address('<user@example.com>'))
+    const rcpt_doms = plugin.get_recipient_domains_by_txn(txn)
+    assert.deepEqual(rcpt_doms, ['example.com'], rcpt_doms)
+  })
 })
 
 describe('is_dkim_authenticated', () => {
@@ -319,7 +362,6 @@ describe('is_dkim_authenticated', () => {
   })
 
   it('authenticates via DKIM alone (no prior FCrDNS/SPF)', async () => {
-    const { Address } = require('@haraka/email-address')
     const txn = connection.transaction
 
     txn.mail_from = new Address('<user@sender.com>')
@@ -336,7 +378,6 @@ describe('is_dkim_authenticated', () => {
   })
 
   it('skips if no dkim results present', async () => {
-    const { Address } = require('@haraka/email-address')
     const txn = connection.transaction
 
     txn.mail_from = new Address('<user@sender.com>')
@@ -352,7 +393,6 @@ describe('is_dkim_authenticated', () => {
   })
 
   it('skips if dkim pass domain does not match sender_od', async () => {
-    const { Address } = require('@haraka/email-address')
     const txn = connection.transaction
 
     txn.mail_from = new Address('<user@sender.com>')
