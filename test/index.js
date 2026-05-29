@@ -2,7 +2,7 @@ const assert = require('node:assert')
 const { describe, it, after, before, beforeEach } = require('node:test')
 
 const { Address } = require('@haraka/email-address')
-const fixtures = require('haraka-test-fixtures')
+const { makeConnection, makePlugin } = require('haraka-test-fixtures')
 const tlds = require('haraka-tld')
 
 // haraka-tld loads its TLD data asynchronously; without this, the early
@@ -14,28 +14,23 @@ before(async () => {
 
 describe('register', () => {
   it('registers', () => {
-    const plugin = new fixtures.plugin('index')
-    plugin.register()
+    const plugin = makePlugin('index')
   })
 
   it('loads the config', () => {
-    const plugin = new fixtures.plugin('index')
-    plugin.register()
+    const plugin = makePlugin('index')
     assert.deepEqual(false, 'simerson.net' in plugin.cfg.ignored_ods)
     assert.deepEqual(true, 'gmail.com' in plugin.cfg.ignored_ods)
   })
 })
 
 describe('is_authenticated', () => {
-  const plugin = new fixtures.plugin('index')
-  plugin.register()
+  const plugin = makePlugin('index')
 
   let connection
 
   beforeEach(() => {
-    connection = fixtures.connection.createConnection()
-    connection.results = new fixtures.result_store(connection)
-    connection.init_transaction()
+    connection = makeConnection({ withTxn: true })
   })
 
   it('returns empty when no auth found', async () => {
@@ -163,12 +158,11 @@ describe('check_recipient', () => {
   let connection
 
   beforeEach(() => {
-    connection = fixtures.connection.createConnection()
-    connection.init_transaction()
+    connection = makeConnection({ withTxn: true })
   })
 
   it('reduces domain to OD', async () => {
-    const plugin = new fixtures.plugin('index')
+    const plugin = makePlugin('index', { register: false })
     plugin.validated_sender_od = 'example.com'
 
     await new Promise((resolve) => {
@@ -189,11 +183,9 @@ describe('update_sender', () => {
   let connection, plugin
 
   beforeEach(async () => {
-    connection = fixtures.connection.createConnection()
-    connection.relaying = true
-    connection.init_transaction()
+    connection = makeConnection({ relaying: true, withTxn: true })
 
-    plugin = new fixtures.plugin('index')
+    plugin = makePlugin('index', { register: false })
     plugin.inherits('haraka-plugin-redis')
     plugin.load_sender_ini()
     await new Promise((resolve) => {
@@ -253,9 +245,8 @@ describe('get_sender_domain_by_txn', () => {
   let plugin, connection
 
   beforeEach(() => {
-    plugin = new fixtures.plugin('known-senders')
-    connection = new fixtures.connection.createConnection()
-    connection.init_transaction()
+    plugin = makePlugin('known-senders', { register: false })
+    connection = makeConnection({ withTxn: true })
   })
 
   it('returns a sender domain: example.com', () => {
@@ -287,9 +278,8 @@ describe('get_recipient_domains_by_txn', () => {
   let plugin, connection
 
   beforeEach(() => {
-    plugin = new fixtures.plugin('known-senders')
-    connection = new fixtures.connection.createConnection()
-    connection.init_transaction()
+    plugin = makePlugin('known-senders', { register: false })
+    connection = makeConnection({ withTxn: true })
   })
 
   it('retrieves domains from txn recipients: example.com', () => {
@@ -331,11 +321,9 @@ describe('is_dkim_authenticated', () => {
   let connection, plugin
 
   beforeEach(async () => {
-    connection = new fixtures.connection.createConnection()
-    connection.init_transaction()
+    connection = makeConnection({ withTxn: true })
 
-    plugin = new fixtures.plugin('known-senders')
-    plugin.register()
+    plugin = makePlugin('known-senders')
     await new Promise((resolve) => {
       plugin.init_redis_plugin(resolve)
     })
