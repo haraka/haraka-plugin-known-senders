@@ -1,7 +1,6 @@
-[![Build Status][ci-img]][ci-url]
-[![Code Climate][clim-img]][clim-url]
-
 # haraka-plugin-known-senders
+
+[![Test][ci-img]][ci-url] [![Cover][cov-img]][cov-url] [![Qlty][qlty-img]][qlty-url]
 
 Increase the reputation of domains you exchange email with by sending them email.
 
@@ -44,7 +43,11 @@ Mechanisms need not be 100% effective to be useful.
 
 This plugin can boost the reputation of most marginally deliverable ham. Where it doesn't help is for messages coming from a Windows Exchange server (no DKIM signing support without $$$ 3rd party plugin) on a lame ISPs network that doesn't let them configure reverse DNS and whose admins haven't the clue to set up SPF properly.
 
+<!-- leave these buried at the bottom of the document -->
+
 [ci-img]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml/badge.svg
 [ci-url]: https://github.com/haraka/haraka-plugin-known-senders/actions/workflows/ci.yml
-[clim-img]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders/badges/gpa.svg
-[clim-url]: https://codeclimate.com/github/haraka/haraka-plugin-known-senders
+[cov-img]: https://codecov.io/github/haraka/haraka-plugin-known-senders/coverage.svg
+[cov-url]: https://codecov.io/github/haraka/haraka-plugin-known-senders
+[qlty-img]: https://qlty.sh/gh/haraka/projects/haraka-plugin-known-senders/maintainability.svg
+[qlty-url]: https://qlty.sh/gh/haraka/projects/haraka-plugin-known-senders
